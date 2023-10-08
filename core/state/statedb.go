@@ -46,6 +46,7 @@ func (s *StateDB) ApplyTransactions(txs []*types.Transaction) {
 		s.Cached[tx.From] -= tx.Value
 		s.Cached[tx.To] += tx.Value
 	}
+	s.Commit()
 }
 
 func (s *StateDB) Commit() {

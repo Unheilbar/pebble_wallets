@@ -22,9 +22,10 @@ func Test__ApplyTransactions(t *testing.T) {
 	state.InitWallets(ts.wallets)
 
 	start := time.Now()
-
 	state.ApplyTransactions(ts.txs)
+
 	res := time.Since(start)
+
 	fmt.Println(res, float64(txesAmount)/res.Seconds(), "tx/s")
 }
 

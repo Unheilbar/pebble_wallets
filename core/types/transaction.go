@@ -1,10 +1,15 @@
 package types
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 type Transaction struct {
-	From  common.Address
-	To    common.Address
-	Id    common.Hash
-	Value uint
+	From      common.Address
+	To        common.Address
+	Id        common.Hash
+	Signature common.Hash
+	Value     *big.Int
 }

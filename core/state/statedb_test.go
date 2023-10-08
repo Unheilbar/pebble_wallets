@@ -15,7 +15,7 @@ var walletsAmount = 100000
 var txesAmount = 100000
 
 func Test__ApplyTransactions(t *testing.T) {
-	state := NewState("test")
+	state := NewState("../../test")
 
 	ts := newTestSuit(walletsAmount, txesAmount)
 

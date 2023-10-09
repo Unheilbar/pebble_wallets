@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 type Tx interface {
@@ -56,21 +57,23 @@ func (s *StateDB) ApplyTransactions(txs []*types.Transaction) common.Hash {
 func (s *StateDB) Commit() common.Hash {
 	tx := s.db.Beginx()
 	var stateChanges []byte
+	tr := trie.NewEmpty(nil)
 	for k, v := range s.dirtyObjects {
 		obj, err := rlp.EncodeToBytes(v.data)
 		stateChanges = append(stateChanges, obj...)
 		if err != nil {
 			log.Fatal(err)
 		}
+		tr.MustUpdate(k[:], obj)
 		tx.Set(k, obj)
 	}
 	for _, h := range s.usedTxs {
 		tx.MarkTX(h)
 	}
-	hash := crypto.Keccak256(stateChanges)
+
 	tx.Commit()
 	s.dirtyObjects = nil
-	return common.BytesToHash(hash)
+	return tr.Hash()
 }
 
 func (s *StateDB) InitWallets(wallets []common.Address) {

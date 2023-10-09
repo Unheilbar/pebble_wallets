@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"testing"
 	"time"
@@ -96,11 +95,9 @@ func generateTxes(addrs []common.Address, size int) []*types.Transaction {
 func generateAccounts(size int) []common.Address {
 	var s []common.Address
 	for i := 0; i < size; i++ {
-		k, err := crypto.GenerateKey()
-		if err != nil {
-			log.Fatal(err)
-		}
-		s = append(s, crypto.PubkeyToAddress(k.PublicKey))
+		k := common.BytesToAddress(crypto.Keccak256(big.NewInt(int64(i)).Bytes())[12:])
+
+		s = append(s, k)
 	}
 	return s
 }

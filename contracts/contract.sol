@@ -10,8 +10,9 @@ pragma solidity >=0.8.2 <0.9.0;
 contract Storage {
 
     uint256 number;
+    mapping (string => uint256) m;
+    mapping (address => uint256) g;
     mapping (address => uint256) balances;
-    mapping (address => uint256) monthAmount;
     /**
      * @dev Store value in variable
      * @param num value to store

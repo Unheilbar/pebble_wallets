@@ -39,16 +39,38 @@ func Test_Run(t *testing.T) {
 		log.Fatal(err)
 	}
 	contrBin := common.Hex2Bytes(binding.StorageMetaData.Bin[2:])
+	binding.NewStorage(common.Address{}, nil)
+
+	statedb, err := state.New(common.Hash{}, sb, nil)
+	cfg.State = statedb
 	evm := getVM(contrBin, cfg, sb)
-	var blockID uint64
+	var blockID uint64 = 1
+	h, err := statedb.Commit(blockID, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	blockID++
+	fmt.Println(h)
+	statedb, err = state.New(h, sb, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(statedb.Exist(common.BytesToAddress([]byte("contract"))))
 
 	for i := 0; i < size; i++ {
+		fmt.Println("state hash", h)
+		cfg.State, err = state.New(h, sb, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 		cfg.BlockNumber = big.NewInt(int64(blockID))
+		evm = runtime.NewEnv(cfg)
 		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
 		if err != nil {
 			log.Fatal(err, input)
 		}
-		r, st, err := evm.Call(
+
+		r, _, err := evm.Call(
 			vm.AccountRef(cfg.Origin),
 			common.BytesToAddress([]byte("contract")),
 			input,
@@ -60,20 +82,14 @@ func Test_Run(t *testing.T) {
 			log.Fatal(err)
 		}
 
-		fmt.Println("result hash", crypto.Keccak256Hash(r), "gas used", st)
+		fmt.Println("result hash", crypto.Keccak256Hash(r))
 
-		h, err := cfg.State.Commit(blockID, true)
+		h, err = cfg.State.Commit(blockID, true)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("state hash", h)
+
 		blockID++
-		cfg.State, err = state.New(h, sb, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		evm = getVM(contrBin, cfg, sb)
 	}
 
 	res := time.Since(start)

@@ -13,6 +13,10 @@ contract Storage {
     mapping (string => uint256) m;
     mapping (address => uint256) g;
     mapping (address => uint256) balances;
+
+        constructor() {
+
+    }
     /**
      * @dev Store value in variable
      * @param num value to store

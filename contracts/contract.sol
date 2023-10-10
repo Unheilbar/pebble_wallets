@@ -25,10 +25,10 @@ contract Storage {
         require(balances[from] - amount >= 0);
         balances[from] = balances[from] - amount;
         balances[to] = balances[to] + amount;
-    }
+    }       
 
-    function setBalance(string memory s,uint256 n) public {
-        m[s] = n;
+    function setBalance(string memory s,uint256 n) external{
+        m[s] = m[s]+n;
     }
 
     function setBalanceA(address a, uint256 n) public {

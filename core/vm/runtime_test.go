@@ -5,9 +5,12 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/Unheilbar/pebbke_wallets/binding"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -19,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-var size = 100000
+var size = 3
 
 func Test_Run(t *testing.T) {
 	start := time.Now()
@@ -35,84 +38,52 @@ func Test_Run(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	contrBin := common.Hex2Bytes(binding.StorageMetaData.Bin[2:])
+	evm := getVM(contrBin, cfg, sb)
+	var blockID uint64
 
-	st, _ := state.New(common.Hash{}, sb, nil)
-	h, _ := st.Commit(1, true)
-	st, _ = state.New(h, sb, nil)
-	h2, _ := st.Commit(2, true)
-	fmt.Println(h, h2)
-
-	evm := getVM(common.Hex2Bytes(erc20), cfg, sb)
-	var blockID uint64 = 1
 	for i := 0; i < size; i++ {
-		r, _, err := evm.Call(
+		cfg.BlockNumber = big.NewInt(int64(blockID))
+		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
+		if err != nil {
+			log.Fatal(err, input)
+		}
+		r, st, err := evm.Call(
 			vm.AccountRef(cfg.Origin),
 			common.BytesToAddress([]byte("contract")),
-			common.Hex2Bytes(calldata),
+			input,
 			cfg.GasLimit,
 			cfg.Value,
 		)
+
 		if err != nil {
 			log.Fatal(err)
 		}
-		if len(r) == 0 {
-			log.Fatal("nil res")
-		}
+
+		fmt.Println("result hash", crypto.Keccak256Hash(r), "gas used", st)
+
 		h, err := cfg.State.Commit(blockID, true)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(h)
+		fmt.Println("state hash", h)
 		blockID++
 		cfg.State, err = state.New(h, sb, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		evm = getVM(common.Hex2Bytes(erc20), cfg, nil)
+		evm = getVM(contrBin, cfg, sb)
 	}
+
 	res := time.Since(start)
 	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()))
-}
-
-func Execute(code, input []byte, cfg *runtime.Config, statedb state.Database) ([]byte, *state.StateDB, error) {
-	if cfg == nil {
-		cfg = new(runtime.Config)
-	}
-
-	if cfg.State == nil {
-		cfg.State, _ = state.New(types.EmptyRootHash, statedb, nil)
-	}
-	var (
-		address = common.BytesToAddress([]byte("contract"))
-		vmenv   = runtime.NewEnv(cfg)
-		sender  = vm.AccountRef(cfg.Origin)
-		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Random != nil, vmenv.Context.Time)
-	)
-	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
-	// - reset transient storage(eip 1153)
-	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
-	cfg.State.CreateAccount(address)
-	// set the receiver's (the executing contract) code for execution.
-	cfg.State.SetCode(address, code)
-	// Call the code with the given configuration.
-	ret, _, err := vmenv.Call(
-		sender,
-		common.BytesToAddress([]byte("contract")),
-		input,
-		cfg.GasLimit,
-		cfg.Value,
-	)
-
-	return ret, cfg.State, err
 }
 
 func getVM(code []byte, cfg *runtime.Config, statedb state.Database) *vm.EVM {
 	if cfg == nil {
 		cfg = new(runtime.Config)
 	}
-
 	if cfg.State == nil {
 		cfg.State, _ = state.New(types.EmptyRootHash, statedb, nil)
 	}
@@ -181,4 +152,21 @@ func setDefaults(cfg *runtime.Config) {
 	if cfg.BaseFee == nil {
 		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
 	}
+}
+
+func PackTX(method string, params ...interface{}) ([]byte, error) {
+	bind := binding.StorageABI
+
+	pabi, err := abi.JSON(strings.NewReader(bind))
+
+	if err != nil {
+		return nil, err
+	}
+
+	input, err := pabi.Pack(method, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	return input, nil
 }

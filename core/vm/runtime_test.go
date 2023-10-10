@@ -22,45 +22,45 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-var size = 100000
+var size = 10
 
-func Test_Run(t *testing.T) {
-	start := time.Now()
+func Test_ExecuteVM(t *testing.T) {
 	rdb, err := rawdb.NewPebbleDBDatabase("../../test", 1024, 16, "some", false, false)
 	cfg := new(runtime.Config)
 	setDefaults(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	triedb := trie.NewDatabase(rdb, trie.HashDefaults)
 	sb := state.NewDatabaseWithNodeDB(rdb, triedb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	contrBin := common.Hex2Bytes(binding.StorageMetaData.Bin[2:])
 
+	contrBin := common.Hex2Bytes(binding.StorageMetaData.Bin[2:])
 	statedb, err := state.New(common.Hash{}, sb, nil)
 	cfg.State = statedb
-	evm, contrAddr := getVM(contrBin, cfg, sb)
+
+	contrAddr, err := deploy(cfg, contrBin)
+	if err != nil {
+		log.Fatal(err)
+	}
 	var blockID uint64 = 1
 	h, err := statedb.Commit(blockID, true)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	blockID++
-	statedb, err = state.New(h, sb, nil)
+	start := time.Now()
+	cfg.State, err = state.New(h, sb, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	blockID++
+	cfg.BlockNumber = big.NewInt(int64(blockID))
 	for i := 0; i < size; i++ {
-		cfg.State, err = state.New(h, sb, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cfg.BlockNumber = big.NewInt(int64(blockID))
-		evm = runtime.NewEnv(cfg)
+		evm := runtime.NewEnv(cfg)
 		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
 		if err != nil {
 			log.Fatal(err, input)
@@ -77,17 +77,22 @@ func Test_Run(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		h, err = cfg.State.Commit(blockID, true)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		blockID++
 	}
-
+	h, err = cfg.State.Commit(blockID, true)
+	if err != nil {
+		log.Fatal(err)
+	}
 	res := time.Since(start)
 	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()))
+}
+
+func deploy(cfg *runtime.Config, code []byte) (common.Address, error) {
+	vevm := runtime.NewEnv(cfg)
+	_, addr, _, err := vevm.Create(vm.AccountRef(cfg.Origin), code, cfg.GasLimit, cfg.Value)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return addr, err
 }
 
 func getVM(code []byte, cfg *runtime.Config, statedb state.Database) (*vm.EVM, common.Address) {

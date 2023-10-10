@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-var size = 3
+var size = 100000
 
 func Test_Run(t *testing.T) {
 	start := time.Now()
@@ -39,26 +39,22 @@ func Test_Run(t *testing.T) {
 		log.Fatal(err)
 	}
 	contrBin := common.Hex2Bytes(binding.StorageMetaData.Bin[2:])
-	binding.NewStorage(common.Address{}, nil)
 
 	statedb, err := state.New(common.Hash{}, sb, nil)
 	cfg.State = statedb
-	evm := getVM(contrBin, cfg, sb)
+	evm, contrAddr := getVM(contrBin, cfg, sb)
 	var blockID uint64 = 1
 	h, err := statedb.Commit(blockID, true)
 	if err != nil {
 		log.Fatal(err)
 	}
 	blockID++
-	fmt.Println(h)
 	statedb, err = state.New(h, sb, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(statedb.Exist(common.BytesToAddress([]byte("contract"))))
 
 	for i := 0; i < size; i++ {
-		fmt.Println("state hash", h)
 		cfg.State, err = state.New(h, sb, nil)
 		if err != nil {
 			log.Fatal(err)
@@ -70,9 +66,9 @@ func Test_Run(t *testing.T) {
 			log.Fatal(err, input)
 		}
 
-		r, _, err := evm.Call(
+		_, _, err = evm.Call(
 			vm.AccountRef(cfg.Origin),
-			common.BytesToAddress([]byte("contract")),
+			contrAddr,
 			input,
 			cfg.GasLimit,
 			cfg.Value,
@@ -81,8 +77,6 @@ func Test_Run(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		fmt.Println("result hash", crypto.Keccak256Hash(r))
 
 		h, err = cfg.State.Commit(blockID, true)
 		if err != nil {
@@ -96,7 +90,7 @@ func Test_Run(t *testing.T) {
 	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()))
 }
 
-func getVM(code []byte, cfg *runtime.Config, statedb state.Database) *vm.EVM {
+func getVM(code []byte, cfg *runtime.Config, statedb state.Database) (*vm.EVM, common.Address) {
 	if cfg == nil {
 		cfg = new(runtime.Config)
 	}
@@ -113,11 +107,14 @@ func getVM(code []byte, cfg *runtime.Config, statedb state.Database) *vm.EVM {
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
 	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
-	cfg.State.CreateAccount(address)
-	// set the receiver's (the executing contract) code for execution.
-	cfg.State.SetCode(address, code)
-
-	return vmenv
+	// cfg.State.CreateAccount(address)
+	// // set the receiver's (the executing contract) code for execution.
+	// cfg.State.SetCode(address, code)
+	_, addr, _, err := vmenv.Create(vm.AccountRef(cfg.Origin), code, cfg.GasLimit, cfg.Value)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return vmenv, addr
 }
 
 // sets defaults on the config

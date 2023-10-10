@@ -21,6 +21,12 @@ contract Storage {
         number = num;
     }
 
+    function transfer(address from, address to, uint256 amount) public {
+        require(balances[from] - amount >= 0);
+        balances[from] = balances[from] - amount;
+        balances[to] = balances[to] + amount;
+    }
+
     function setBalance(string memory s,uint256 n) public {
         m[s] = n;
     }

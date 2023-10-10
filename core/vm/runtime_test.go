@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -45,6 +44,7 @@ func Test_ExecuteVM(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	var blockID uint64 = 1
 	h, err := statedb.Commit(blockID, true)
 	if err != nil {
@@ -57,29 +57,27 @@ func Test_ExecuteVM(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	blockID++
-	cfg.BlockNumber = big.NewInt(int64(blockID))
-	inputs := generateInputs(size)
-	for i := 0; i < size; i++ {
-		evm := runtime.NewEnv(cfg)
-		_, _, err = evm.Call(
-			vm.AccountRef(cfg.Origin),
-			contrAddr,
-			inputs[i],
-			cfg.GasLimit,
-			cfg.Value,
-		)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	h, err = cfg.State.Commit(blockID, true)
-	if err != nil {
-		log.Fatal(err)
-	}
+	inputs := generateInputsEmissions(size)
+	root := executeInputs(cfg, blockID, contrAddr, inputs)
 	res := time.Since(start)
-	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()))
+	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "emissions storage root", root)
+
+	blockID++
+	cfg.State, err = state.New(root, sb, nil)
+	inputs = generateInputsTransfers(size)
+	start = time.Now()
+	root = executeInputs(cfg, blockID, contrAddr, inputs)
+	res = time.Since(start)
+	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "transfers storage root", root)
+
+	blockID++
+	cfg.State, err = state.New(root, sb, nil)
+	inputs = generateInputsTransfers(size)
+	start = time.Now()
+	root = executeInputs(cfg, blockID, contrAddr, inputs)
+	res = time.Since(start)
+	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "transfers storage root", root)
+
 }
 
 func deploy(cfg *runtime.Config, code []byte) (common.Address, error) {
@@ -91,31 +89,28 @@ func deploy(cfg *runtime.Config, code []byte) (common.Address, error) {
 	return addr, err
 }
 
-func getVM(code []byte, cfg *runtime.Config, statedb state.Database) (*vm.EVM, common.Address) {
-	if cfg == nil {
-		cfg = new(runtime.Config)
+func executeInputs(cfg *runtime.Config, blockID uint64, contrAddr common.Address, inputs [][]byte) common.Hash {
+	cfg.BlockNumber = big.NewInt(int64(blockID))
+	for i := 0; i < len(inputs); i++ {
+		evm := runtime.NewEnv(cfg)
+		_, _, err := evm.Call(
+			vm.AccountRef(cfg.Origin),
+			contrAddr,
+			inputs[i],
+			cfg.GasLimit,
+			cfg.Value,
+		)
+
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	if cfg.State == nil {
-		cfg.State, _ = state.New(types.EmptyRootHash, statedb, nil)
-	}
-	var (
-		address = common.BytesToAddress([]byte("contract"))
-		vmenv   = runtime.NewEnv(cfg)
-		//sender  = vm.AccountRef(cfg.Origin)
-		rules = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Random != nil, vmenv.Context.Time)
-	)
-	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
-	// - reset transient storage(eip 1153)
-	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
-	// cfg.State.CreateAccount(address)
-	// // set the receiver's (the executing contract) code for execution.
-	// cfg.State.SetCode(address, code)
-	_, addr, _, err := vmenv.Create(vm.AccountRef(cfg.Origin), code, cfg.GasLimit, cfg.Value)
+
+	h, err := cfg.State.Commit(blockID, true)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return vmenv, addr
+	return h
 }
 
 // sets defaults on the config
@@ -185,14 +180,41 @@ func PackTX(method string, params ...interface{}) ([]byte, error) {
 	return input, nil
 }
 
-func generateInputs(size int) [][]byte {
+func generateInputsEmissions(size int) [][]byte {
+	users := generateAccounts(size)
 	r := make([][]byte, 0)
 	for i := 0; i < size; i++ {
-		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
+		input, err := PackTX("setBalance", users[i].Hex(), big.NewInt(int64(10000000)))
 		if err != nil {
 			log.Fatal(err, input)
 		}
 		r = append(r, input)
 	}
 	return r
+}
+
+func generateInputsTransfers(size int) [][]byte {
+	users := generateAccounts(size)
+	r := make([][]byte, 0)
+	for i := 0; i < size; i++ {
+		fromIdx := i % len(users)
+		toIdx := (i + 1) % len(users)
+		input, err := PackTX("transfer", users[fromIdx].Hex(), users[toIdx].Hex(), big.NewInt(1))
+		if err != nil {
+			log.Fatal(err)
+		}
+		r = append(r, input)
+	}
+
+	return r
+}
+
+func generateAccounts(size int) []common.Address {
+	var s []common.Address
+	for i := 0; i < size; i++ {
+		k := common.BytesToAddress(crypto.Keccak256(big.NewInt(int64(i)).Bytes())[12:])
+
+		s = append(s, k)
+	}
+	return s
 }

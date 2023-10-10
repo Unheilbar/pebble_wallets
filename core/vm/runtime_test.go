@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-var size = 10
+var size = 10000
 
 func Test_ExecuteVM(t *testing.T) {
 	rdb, err := rawdb.NewPebbleDBDatabase("../../test", 1024, 16, "some", false, false)
@@ -59,17 +59,13 @@ func Test_ExecuteVM(t *testing.T) {
 	}
 	blockID++
 	cfg.BlockNumber = big.NewInt(int64(blockID))
+	inputs := generateInputs(size)
 	for i := 0; i < size; i++ {
 		evm := runtime.NewEnv(cfg)
-		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
-		if err != nil {
-			log.Fatal(err, input)
-		}
-
 		_, _, err = evm.Call(
 			vm.AccountRef(cfg.Origin),
 			contrAddr,
-			input,
+			inputs[i],
 			cfg.GasLimit,
 			cfg.Value,
 		)
@@ -187,4 +183,16 @@ func PackTX(method string, params ...interface{}) ([]byte, error) {
 	}
 
 	return input, nil
+}
+
+func generateInputs(size int) [][]byte {
+	r := make([][]byte, 0)
+	for i := 0; i < size; i++ {
+		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
+		if err != nil {
+			log.Fatal(err, input)
+		}
+		r = append(r, input)
+	}
+	return r
 }

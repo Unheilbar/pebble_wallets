@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-var size = 10000
+var size = 100000
 
 func Test_ExecuteVM(t *testing.T) {
 	rdb, err := rawdb.NewPebbleDBDatabase("../../test", 1024, 16, "some", false, false)
@@ -69,15 +69,6 @@ func Test_ExecuteVM(t *testing.T) {
 	root = executeInputs(cfg, blockID, contrAddr, inputs)
 	res = time.Since(start)
 	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "transfers storage root", root)
-
-	blockID++
-	cfg.State, err = state.New(root, sb, nil)
-	inputs = generateInputsTransfers(size)
-	start = time.Now()
-	root = executeInputs(cfg, blockID, contrAddr, inputs)
-	res = time.Since(start)
-	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "transfers storage root", root)
-
 }
 
 func deploy(cfg *runtime.Config, code []byte) (common.Address, error) {

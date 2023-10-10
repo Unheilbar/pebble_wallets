@@ -27,8 +27,12 @@ contract Storage {
         balances[to] = balances[to] + amount;
     }       
 
-    function setBalance(string memory s,uint256 n) external{
+    function setBalance(string memory s,uint256 n) public{
         m[s] = m[s]+n;
+    }
+
+    function getBalance(string memory s) public view returns (uint256){
+        return m[s];
     }
 
     function setBalanceA(address a, uint256 n) public {

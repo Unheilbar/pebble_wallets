@@ -43,15 +43,15 @@ func Test_Run(t *testing.T) {
 	var blockID uint64
 
 	for i := 0; i < size; i++ {
-		cfg.BlockNumber = big.NewInt(int64(blockID))
+		fmt.Println("setBalance~~~~~~~~~~~~~~~~~~")
 		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
 		if err != nil {
 			log.Fatal(err, input)
 		}
-		r, st, err := evm.Call(
+		r, _, err := evm.CallCode(
 			vm.AccountRef(cfg.Origin),
 			common.BytesToAddress([]byte("contract")),
-			input,
+			[]byte{1, 2},
 			cfg.GasLimit,
 			cfg.Value,
 		)
@@ -59,8 +59,22 @@ func Test_Run(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		fmt.Println("result hash", crypto.Keccak256Hash(r), "gas used", st)
+		fmt.Println("getBalance~~~~~~~~~~~~~~~~~~")
+		input, err = PackTX("getBalance", fmt.Sprint(i))
+		if err != nil {
+			log.Fatal(err, input)
+		}
+		r, _, err = evm.Call(
+			vm.AccountRef(cfg.Origin),
+			common.BytesToAddress([]byte("contract")),
+			input,
+			cfg.GasLimit,
+			cfg.Value,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("result hash", crypto.Keccak256Hash(r))
 
 		h, err := cfg.State.Commit(blockID, true)
 		if err != nil {
@@ -72,8 +86,9 @@ func Test_Run(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		cfg.BlockNumber = big.NewInt(int64(blockID))
 
-		evm = getVM(contrBin, cfg, sb)
+		evm = runtime.NewEnv(cfg)
 	}
 
 	res := time.Since(start)
@@ -167,6 +182,5 @@ func PackTX(method string, params ...interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return input, nil
 }

@@ -1,4 +1,4 @@
-package tooltests
+package tests
 
 import (
 	"fmt"
@@ -10,8 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
-
-const genesisPrivate = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19"
 
 func Test_Some(t *testing.T) {
 	privateKey, err := crypto.HexToECDSA(genesisPrivate)

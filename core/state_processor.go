@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"log"
 	"math/big"
 
@@ -10,13 +11,18 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type StateProcessor struct {
 	cfg *runtime.Config
 }
 
-func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB, cfg vm.Config) []*types.Receipt {
+func NewStateProcessor(cfg *runtime.Config) *StateProcessor {
+	return &StateProcessor{cfg}
+}
+
+func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*types.Receipt {
 	var (
 		receipts    []*types.Receipt
 		blockHash   = block.Hash
@@ -29,7 +35,7 @@ func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB, cfg 
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := p.applyTransaction(tx, statedb, blockNumber, blockHash, evm)
 		if err != nil {
-			log.Fatal("couldn't aply transaction") //TODO if precheck tx fail
+			log.Fatal("couldn't aply transaction") //TODO if precheck tx fail (Signature, tx uniqueness etc..)
 		}
 		receipts = append(receipts, receipt)
 	}
@@ -46,7 +52,8 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 		vmerr            error
 	)
 
-	// TODO CHECK UNIQUNESS of tx HASH
+	// TODO CHECK UNIQUNESS of tx HASH signature etc..
+	preCheck(tx)
 	if contractCreation {
 		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, p.cfg.GasLimit, tx.Value)
 	} else {
@@ -91,6 +98,7 @@ func getLogs(txHash common.Hash, blockNumber uint64, blockHash common.Hash, stat
 
 	return ret
 }
+
 func newTxContext(cfg *runtime.Config, from common.Address) vm.TxContext {
 	return vm.TxContext{
 		Origin:     from,
@@ -98,6 +106,7 @@ func newTxContext(cfg *runtime.Config, from common.Address) vm.TxContext {
 		BlobHashes: cfg.BlobHashes,
 	}
 }
+
 func newBlockContext(cfg *runtime.Config, blockNumber *big.Int) vm.BlockContext {
 	return vm.BlockContext{
 		CanTransfer: core.CanTransfer,
@@ -111,4 +120,14 @@ func newBlockContext(cfg *runtime.Config, blockNumber *big.Int) vm.BlockContext 
 		BaseFee:     cfg.BaseFee,
 		Random:      cfg.Random,
 	}
+}
+
+func preCheck(tx *types.Transaction) (bool, error) {
+	sigPublicKey, err := crypto.Ecrecover(tx.Hash().Bytes(), tx.Signature)
+	if err != nil {
+		return false, err
+	}
+	var addr common.Address
+	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
+	return bytes.Equal(addr.Bytes(), tx.From.Bytes()), nil
 }

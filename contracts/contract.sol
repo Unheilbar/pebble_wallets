@@ -39,6 +39,7 @@ contract Storage {
         balances[from] = balances[from] - amount;
         balances[to] = balances[to] + amount;
         monthAmounts[from] = monthAmounts[from] + amount;
+        number = amount;
     }       
 
     function setBalance(string memory s,uint256 n) public{

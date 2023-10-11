@@ -54,6 +54,7 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 
 	// TODO CHECK UNIQUNESS of tx HASH signature etc..
 	preCheck(tx)
+
 	if contractCreation {
 		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, p.cfg.GasLimit, tx.Value)
 	} else {

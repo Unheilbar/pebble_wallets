@@ -27,7 +27,15 @@ const genesisPrivate = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83
 func (c *Chad) generateAccEmissionsTx(contrAddr common.Address) []*types.Transaction {
 	var ret []*types.Transaction
 	for _, acc := range c.accounts {
-		ret = append(ret, getContractEmissionTX(acc.from.Hex(), contrAddr))
+		tx := getContractEmissionTX(acc.from.Hex(), contrAddr)
+		tx.From = acc.from
+		sign, err := crypto.Sign(tx.Hash().Bytes(), acc.private)
+		if err != nil {
+			log.Fatal("sign err", err)
+		}
+		tx.Signature = sign
+
+		ret = append(ret, tx)
 	}
 	return ret
 }
@@ -37,13 +45,13 @@ func (c *Chad) generateAccs(size int) {
 	prev := genesisPrivate
 	for i := 0; i < size; i++ {
 		privateKey, err := crypto.HexToECDSA(prev)
-		prev = string(crypto.Keccak256Hash([]byte(prev)).Hex()[2:])
 		if err != nil {
 			log.Fatal("err gen private", err)
 		}
 
 		from := common.BytesToAddress(crypto.Keccak256(crypto.FromECDSAPub(&privateKey.PublicKey)[1:])[12:])
 		c.accounts[from] = chadAcc{from: from, private: privateKey}
+		prev = string(crypto.Keccak256Hash([]byte(prev)).Hex()[2:])
 	}
 }
 
@@ -68,6 +76,7 @@ func getContractEmissionTX(wallet string, contrAddr common.Address) *types.Trans
 		Input: input,
 		Value: new(big.Int),
 	}
+
 }
 func packTX(method string, params ...interface{}) ([]byte, error) {
 	bind := binding.StorageABI

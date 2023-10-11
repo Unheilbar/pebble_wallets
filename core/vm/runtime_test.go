@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -22,101 +21,87 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-var size = 3
+var size = 100000
 
-func Test_Run(t *testing.T) {
-	start := time.Now()
+func Test_ExecuteVM(t *testing.T) {
 	rdb, err := rawdb.NewPebbleDBDatabase("../../test", 1024, 16, "some", false, false)
 	cfg := new(runtime.Config)
 	setDefaults(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	triedb := trie.NewDatabase(rdb, trie.HashDefaults)
 	sb := state.NewDatabaseWithNodeDB(rdb, triedb)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	contrBin := common.Hex2Bytes(binding.StorageMetaData.Bin[2:])
-	evm := getVM(contrBin, cfg, sb)
-	var blockID uint64
+	statedb, err := state.New(common.Hash{}, sb, nil)
+	cfg.State = statedb
 
-	for i := 0; i < size; i++ {
-		fmt.Println("setBalance~~~~~~~~~~~~~~~~~~")
-		input, err := PackTX("setBalance", fmt.Sprint(i), big.NewInt(int64(i)))
-		if err != nil {
-			log.Fatal(err, input)
-		}
-		r, _, err := evm.CallCode(
-			vm.AccountRef(cfg.Origin),
-			common.BytesToAddress([]byte("contract")),
-			[]byte{1, 2},
-			cfg.GasLimit,
-			cfg.Value,
-		)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("getBalance~~~~~~~~~~~~~~~~~~")
-		input, err = PackTX("getBalance", fmt.Sprint(i))
-		if err != nil {
-			log.Fatal(err, input)
-		}
-		r, _, err = evm.Call(
-			vm.AccountRef(cfg.Origin),
-			common.BytesToAddress([]byte("contract")),
-			input,
-			cfg.GasLimit,
-			cfg.Value,
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("result hash", crypto.Keccak256Hash(r))
-
-		h, err := cfg.State.Commit(blockID, true)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("state hash", h)
-		blockID++
-		cfg.State, err = state.New(h, sb, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cfg.BlockNumber = big.NewInt(int64(blockID))
-
-		evm = runtime.NewEnv(cfg)
+	contrAddr, err := deploy(cfg, contrBin)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	var blockID uint64 = 1
+	h, err := statedb.Commit(blockID, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	blockID++
+	start := time.Now()
+	cfg.State, err = state.New(h, sb, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	inputs := generateInputsEmissions(size)
+	root := executeInputs(cfg, blockID, contrAddr, inputs)
 	res := time.Since(start)
-	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()))
+	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "emissions storage root", root)
+
+	blockID++
+	cfg.State, err = state.New(root, sb, nil)
+	inputs = generateInputsTransfers(size)
+	start = time.Now()
+	root = executeInputs(cfg, blockID, contrAddr, inputs)
+	res = time.Since(start)
+	fmt.Println(res, "tx/s", float64(size)/(res.Seconds()), "transfers storage root", root)
 }
 
-func getVM(code []byte, cfg *runtime.Config, statedb state.Database) *vm.EVM {
-	if cfg == nil {
-		cfg = new(runtime.Config)
+func deploy(cfg *runtime.Config, code []byte) (common.Address, error) {
+	vevm := runtime.NewEnv(cfg)
+	_, addr, _, err := vevm.Create(vm.AccountRef(cfg.Origin), code, cfg.GasLimit, cfg.Value)
+	if err != nil {
+		log.Fatal(err)
 	}
-	if cfg.State == nil {
-		cfg.State, _ = state.New(types.EmptyRootHash, statedb, nil)
-	}
-	var (
-		address = common.BytesToAddress([]byte("contract"))
-		vmenv   = runtime.NewEnv(cfg)
-		//sender  = vm.AccountRef(cfg.Origin)
-		rules = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Random != nil, vmenv.Context.Time)
-	)
-	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
-	// - reset transient storage(eip 1153)
-	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
-	cfg.State.CreateAccount(address)
-	// set the receiver's (the executing contract) code for execution.
-	cfg.State.SetCode(address, code)
+	return addr, err
+}
 
-	return vmenv
+func executeInputs(cfg *runtime.Config, blockID uint64, contrAddr common.Address, inputs [][]byte) common.Hash {
+	cfg.BlockNumber = big.NewInt(int64(blockID))
+	for i := 0; i < len(inputs); i++ {
+		evm := runtime.NewEnv(cfg)
+		_, _, err := evm.Call(
+			vm.AccountRef(cfg.Origin),
+			contrAddr,
+			inputs[i],
+			cfg.GasLimit,
+			cfg.Value,
+		)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	h, err := cfg.State.Commit(blockID, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return h
 }
 
 // sets defaults on the config
@@ -182,5 +167,45 @@ func PackTX(method string, params ...interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return input, nil
+}
+
+func generateInputsEmissions(size int) [][]byte {
+	users := generateAccounts(size)
+	r := make([][]byte, 0)
+	for i := 0; i < size; i++ {
+		input, err := PackTX("setBalance", users[i].Hex(), big.NewInt(int64(10000000)))
+		if err != nil {
+			log.Fatal(err, input)
+		}
+		r = append(r, input)
+	}
+	return r
+}
+
+func generateInputsTransfers(size int) [][]byte {
+	users := generateAccounts(size)
+	r := make([][]byte, 0)
+	for i := 0; i < size; i++ {
+		fromIdx := i % len(users)
+		toIdx := (i + 1) % len(users)
+		input, err := PackTX("transfer", users[fromIdx].Hex(), users[toIdx].Hex(), big.NewInt(1))
+		if err != nil {
+			log.Fatal(err)
+		}
+		r = append(r, input)
+	}
+
+	return r
+}
+
+func generateAccounts(size int) []common.Address {
+	var s []common.Address
+	for i := 0; i < size; i++ {
+		k := common.BytesToAddress(crypto.Keccak256(big.NewInt(int64(i)).Bytes())[12:])
+
+		s = append(s, k)
+	}
+	return s
 }

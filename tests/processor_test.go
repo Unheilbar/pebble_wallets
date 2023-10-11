@@ -11,16 +11,19 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/binding"
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-const walletsAmount = 100000
+const walletsAmount = 10000
+const transfersAmount = 10000
 
 func Test__StateProcessor(t *testing.T) {
 	var tester Chad
@@ -73,10 +76,34 @@ func Test__StateProcessor(t *testing.T) {
 
 	newRoot, err = statedb.Commit(uint64(blockID), true)
 	if err != nil {
-		log.Fatal("err state db open", err)
+		log.Fatal("err state db commit", err)
 	}
 	evaltime := time.Since(emissionsStartTime)
 	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
+
+	blockID++
+	transfers := tester.generateTransfers(transfersAmount, contrAddr)
+	statedb, err = state.New(newRoot, sb, nil)
+	if err != nil {
+		log.Fatal("err state db open", err)
+	}
+	transfersStartTime := time.Now()
+	receipts = stProcessor.Process(
+		types.Block{
+			Transactions: transfers,
+			Number:       big.NewInt(blockID),
+		},
+		statedb)
+
+	newRoot, err = statedb.Commit(uint64(blockID), true)
+	if err != nil {
+		log.Fatal("err state db commit", err)
+	}
+	evaltime = time.Since(transfersStartTime)
+	controlWallet := tester.orderedAccs[1].from.Hex()
+	fmt.Println("transfers done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(transfersAmount)/evaltime.Seconds(), "tx/s")
+	fmt.Println("control fake balance: ", tester.fakeBalances[controlWallet])
+	fmt.Println("root ", newRoot, "state balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
 }
 
 func newProcessor() *core.StateProcessor {
@@ -133,4 +160,36 @@ func setDefaults(cfg *runtime.Config) {
 	if cfg.BaseFee == nil {
 		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
 	}
+}
+
+func getWalletBalanceForRoot(root common.Hash, s string, sb state.Database, contrAddr common.Address) *big.Int {
+	statedb, err := state.New(root, sb, nil)
+	if err != nil {
+		log.Fatal("err state db open", err)
+	}
+
+	cfg := new(runtime.Config)
+	cfg.State = statedb
+	setDefaults(cfg)
+	nenv := runtime.NewEnv(cfg)
+	input, err := packTX("getBalance", s)
+	if err != nil {
+		log.Fatal("err state db open", err)
+	}
+
+	ret, _, err := nenv.Call(vm.AccountRef(cfg.Origin),
+		contrAddr,
+		input,
+		cfg.GasLimit,
+		cfg.Value)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sabi, _ := binding.StorageMetaData.GetAbi()
+	res, err := sabi.Unpack("getBalance", ret)
+	if err != nil {
+		log.Fatal(err)
+	}
+	out0 := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
+	return out0
 }

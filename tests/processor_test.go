@@ -91,6 +91,7 @@ func Test__StateProcessor(t *testing.T) {
 	if err != nil {
 		log.Fatal("err commit emissions deploy", err)
 	}
+	emisRoot := newRoot
 	evaltime := time.Since(emissionsStartTime)
 	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
 
@@ -139,6 +140,7 @@ func Test__StateProcessor(t *testing.T) {
 	sb = state.NewDatabaseWithNodeDB(rdb, triedb)
 	statedb, err = state.New(newRoot, sb, nil)
 	fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
+	fmt.Println("emis moment Balance", getWalletBalanceForRoot(emisRoot, controlWallet, sb, contrAddr))
 }
 
 func newProcessor() *core.StateProcessor {

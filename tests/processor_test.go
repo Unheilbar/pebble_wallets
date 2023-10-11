@@ -31,9 +31,13 @@ func Test__StateProcessor(t *testing.T) {
 	tester.generateAccs(walletsAmount)
 	stProcessor := newProcessor()
 
-	rdb, err := rawdb.NewPebbleDBDatabase("../../testdb", 1024, 16, "some", false, false)
+	rdb, err := rawdb.NewPebbleDBDatabase("../testdb", 1024, 16, "some", false, false)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	triedb := trie.NewDatabase(rdb, trie.HashDefaults)
+
 	sb := state.NewDatabaseWithNodeDB(rdb, triedb)
 	if err != nil {
 		log.Fatal("err node db open", err)
@@ -55,11 +59,16 @@ func Test__StateProcessor(t *testing.T) {
 	contrAddr := receipt.ContractAddress
 
 	newRoot, err := statedb.Commit(uint64(blockID), true)
+	if err != nil {
+		log.Fatal("err commit sb deploy", err)
+	}
+
+	err = sb.TrieDB().Commit(newRoot, false)
+	if err != nil {
+		log.Fatal("err commit tdb deploy", err)
+	}
 	fmt.Println("deploy receipt addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
 	blockID++
-	if err != nil {
-		log.Fatal("err commit deploy", err)
-	}
 
 	statedb, err = state.New(newRoot, sb, nil)
 	if err != nil {
@@ -77,6 +86,10 @@ func Test__StateProcessor(t *testing.T) {
 	newRoot, err = statedb.Commit(uint64(blockID), true)
 	if err != nil {
 		log.Fatal("err state db commit", err)
+	}
+	err = sb.TrieDB().Commit(newRoot, false)
+	if err != nil {
+		log.Fatal("err commit emissions deploy", err)
 	}
 	evaltime := time.Since(emissionsStartTime)
 	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
@@ -99,11 +112,33 @@ func Test__StateProcessor(t *testing.T) {
 	if err != nil {
 		log.Fatal("err state db commit", err)
 	}
+	err = sb.TrieDB().Commit(newRoot, false)
+	if err != nil {
+		log.Fatal("err commit tb transfers deploy", err)
+	}
 	evaltime = time.Since(transfersStartTime)
+
 	controlWallet := tester.orderedAccs[1].from.Hex()
 	fmt.Println("transfers done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(transfersAmount)/evaltime.Seconds(), "tx/s")
 	fmt.Println("control fake balance: ", tester.fakeBalances[controlWallet])
-	fmt.Println("root ", newRoot, "state balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
+	fmt.Println("contr evm balance:    ", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
+	fmt.Println("Close databases...root", newRoot)
+
+	err = rdb.Close()
+	err = sb.DiskDB().Close()
+	err = triedb.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	rdb, err = rawdb.NewPebbleDBDatabase("../testdb", 1024, 16, "some", false, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	triedb = trie.NewDatabase(rdb, trie.HashDefaults)
+	sb = state.NewDatabaseWithNodeDB(rdb, triedb)
+	statedb, err = state.New(newRoot, sb, nil)
+	fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
 }
 
 func newProcessor() *core.StateProcessor {

@@ -46,6 +46,10 @@ contract Storage {
         balances[s] = balances[s] + n;
     }
 
+    function getBalance(string memory s) public view returns(uint256) {
+        return balances[s];
+    }
+    
     function setBalanceA(address a, uint256 n) public {
         g[a]=n;
     }

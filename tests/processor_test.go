@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/binding"
 	"github.com/Unheilbar/pebbke_wallets/core"
@@ -19,10 +20,12 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
+const walletsAmount = 100000
+
 func Test__StateProcessor(t *testing.T) {
 	var tester Chad
 
-	tester.generateAccs(1000)
+	tester.generateAccs(walletsAmount)
 	stProcessor := newProcessor()
 
 	rdb, err := rawdb.NewPebbleDBDatabase("../../testdb", 1024, 16, "some", false, false)
@@ -37,15 +40,43 @@ func Test__StateProcessor(t *testing.T) {
 	if err != nil {
 		log.Fatal("err state db open", err)
 	}
-
+	var blockID int64 = 1
+	deployStartTime := time.Now()
 	receipts := stProcessor.Process(
 		types.Block{
-			Transactions: []*types.Transaction{tester.getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
-			Number:       big.NewInt(1),
+			Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
+			Number:       big.NewInt(blockID),
 		},
 		statedb)
 	receipt := receipts[0]
-	fmt.Println(receipt.ContractAddress, receipt.Status)
+	contrAddr := receipt.ContractAddress
+
+	newRoot, err := statedb.Commit(uint64(blockID), true)
+	fmt.Println("deploy receipt addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
+	blockID++
+	if err != nil {
+		log.Fatal("err commit deploy", err)
+	}
+
+	statedb, err = state.New(newRoot, sb, nil)
+	if err != nil {
+		log.Fatal("err state db open", err)
+	}
+	emissions := tester.generateAccEmissionsTx(receipts[0].ContractAddress)
+	emissionsStartTime := time.Now()
+	receipts = stProcessor.Process(
+		types.Block{
+			Transactions: emissions,
+			Number:       big.NewInt(blockID),
+		},
+		statedb)
+
+	newRoot, err = statedb.Commit(uint64(blockID), true)
+	if err != nil {
+		log.Fatal("err state db open", err)
+	}
+	evaltime := time.Since(emissionsStartTime)
+	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
 }
 
 func newProcessor() *core.StateProcessor {

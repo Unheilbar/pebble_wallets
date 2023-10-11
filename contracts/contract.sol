@@ -20,7 +20,7 @@ contract Storage {
     mapping (string => uint256) balances;
     mapping (string => uint256) monthAmounts;
     mapping (string => Roles) userRoles;
-
+    mapping (address => string) wallets;
     constructor() {
         monthAmount = 1000000;
     }
@@ -36,14 +36,15 @@ contract Storage {
         require(balances[from] - amount >= 0);
         require(monthAmounts[from] + amount < monthAmount);
         require(userRoles[from]!=Roles.AMATEUR && userRoles[to]!=Roles.PRO);
+        require(keccak256(bytes(wallets[msg.sender])) == keccak256(bytes(from)));
         balances[from] = balances[from] - amount;
         balances[to] = balances[to] + amount;
         monthAmounts[from] = monthAmounts[from] + amount;
-        number = amount;
     }       
 
     function setBalance(string memory s,uint256 n) public{
-        balances[s] = balances[s] + n;
+        wallets[msg.sender]=s;
+        balances[s] =  n;
     }
 
     function getBalance(string memory s) public view returns(uint256) {

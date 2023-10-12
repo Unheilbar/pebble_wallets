@@ -55,6 +55,7 @@ func (c *Chad) generateTransfers(size int, contrAddr common.Address) []*types.Tr
 		ptrTo += i * 2
 		tx := getContractTransferTX(accFrom.from.Hex(), accTo.from.Hex(), contrAddr)
 		tx.From = accFrom.from
+		tx.Id = accFrom.from.Hash()
 		sign, err := crypto.Sign(tx.Hash().Bytes(), accFrom.private)
 		if err != nil {
 			log.Fatal("sign err", err)

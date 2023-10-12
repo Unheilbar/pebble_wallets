@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -14,18 +15,55 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 )
 
 const walletsAmount = 10000
 const transfersAmount = 10000
 
+type Blockchain struct {
+	db ethdb.Database
+}
+
+func NewBlockchain() (*Blockchain, error) {
+	rdb, err := rawdb.NewPebbleDBDatabase("../chaindb", 1024, 16, "some", false, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Blockchain{
+		db: rdb,
+	}, nil
+}
+
+func (b *Blockchain) InsertBlock(block *types.Block) error {
+	batch := b.db.NewBatch()
+
+	rlpBlock, err := rlp.EncodeToBytes(block)
+	if err != nil {
+		return err
+	}
+	fmt.Println("insert", block.Hash(), block.Number.Uint64())
+	rawdb.WriteBodyRLP(batch, block.Hash(), block.Number.Uint64(), rlpBlock)
+	return batch.Write()
+}
+
+// hasherPool holds LegacyKeccak256 hashers for rlpHash.
+
 func Test__StateProcessor(t *testing.T) {
+	blockchain, err := NewBlockchain()
+	if err != nil {
+		log.Fatal("create blockchain ", err)
+	}
+
 	var tester Chad
 
 	tester.generateAccs(walletsAmount)
@@ -49,12 +87,13 @@ func Test__StateProcessor(t *testing.T) {
 	}
 	var blockID int64 = 1
 	deployStartTime := time.Now()
-	receipts := stProcessor.Process(
-		types.Block{
-			Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
-			Number:       big.NewInt(blockID),
-		},
-		statedb)
+
+	block := types.Block{
+		Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
+		Number:       big.NewInt(blockID),
+	}
+
+	receipts := stProcessor.Process(block, statedb)
 	receipt := receipts[0]
 	contrAddr := receipt.ContractAddress
 
@@ -76,12 +115,12 @@ func Test__StateProcessor(t *testing.T) {
 	}
 	emissions := tester.generateAccEmissionsTx(receipts[0].ContractAddress)
 	emissionsStartTime := time.Now()
-	receipts = stProcessor.Process(
-		types.Block{
-			Transactions: emissions,
-			Number:       big.NewInt(blockID),
-		},
-		statedb)
+
+	block = types.Block{
+		Transactions: emissions,
+		Number:       big.NewInt(blockID),
+	}
+	receipts = stProcessor.Process(block, statedb)
 
 	newRoot, err = statedb.Commit(uint64(blockID), true)
 	if err != nil {
@@ -93,6 +132,7 @@ func Test__StateProcessor(t *testing.T) {
 	}
 	emisRoot := newRoot
 	evaltime := time.Since(emissionsStartTime)
+	fmt.Println("transaction count", len(emissions))
 	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
 
 	blockID++
@@ -141,6 +181,15 @@ func Test__StateProcessor(t *testing.T) {
 	statedb, err = state.New(newRoot, sb, nil)
 	fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
 	fmt.Println("emis moment Balance", getWalletBalanceForRoot(emisRoot, controlWallet, sb, contrAddr))
+	bl := &types.Block{
+		Transactions: transfers,
+		Number:       big.NewInt(blockID)}
+	err = blockchain.InsertBlock(bl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	readBlock := ReadBlock(blockchain.db, bl.Hash(), bl.Number.Uint64())
+	fmt.Println(readBlock.Transactions[0].Id)
 }
 
 func newProcessor() *core.StateProcessor {
@@ -229,4 +278,19 @@ func getWalletBalanceForRoot(root common.Hash, s string, sb state.Database, cont
 	}
 	out0 := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
 	return out0
+}
+func ReadBlock(db ethdb.Reader, hash common.Hash, number uint64) *types.Block {
+	fmt.Println("read ", hash, number)
+	data := rawdb.ReadBodyRLP(db, hash, number)
+	if len(data) == 0 {
+		log.Fatal("read block nil")
+		return nil
+	}
+	block := new(types.Block)
+	if err := rlp.Decode(bytes.NewReader(data), block); err != nil {
+		fmt.Println("error decode block", err)
+		return nil
+	}
+	return block
+
 }

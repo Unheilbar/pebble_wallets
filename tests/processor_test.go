@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -181,15 +182,23 @@ func Test__StateProcessor(t *testing.T) {
 	statedb, err = state.New(newRoot, sb, nil)
 	fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
 	fmt.Println("emis moment Balance", getWalletBalanceForRoot(emisRoot, controlWallet, sb, contrAddr))
+
 	bl := &types.Block{
 		Transactions: transfers,
+		Receipts:     receipts,
+		StateRoot:    newRoot,
 		Number:       big.NewInt(blockID)}
+	insertStart := time.Now()
 	err = blockchain.InsertBlock(bl)
+	fmt.Println("insert block time ", time.Since(insertStart))
 	if err != nil {
 		log.Fatal(err)
 	}
 	readBlock := ReadBlock(blockchain.db, bl.Hash(), bl.Number.Uint64())
 	fmt.Println(readBlock.Transactions[0].Id)
+	walletBalance1 := getWalletBalanceForRoot(readBlock.StateRoot, readBlock.Transactions[1].From.Hex(), sb, contrAddr)
+	expected := uint64(tester.fakeBalances[readBlock.Transactions[1].From.Hex()])
+	assert.Equal(t, expected, walletBalance1.Uint64())
 }
 
 func newProcessor() *core.StateProcessor {

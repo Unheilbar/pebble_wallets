@@ -12,7 +12,9 @@ import (
 
 type Block struct {
 	Transactions []*Transaction
+	Receipts     []*Receipt
 	Number       *big.Int
+	StateRoot    common.Hash
 }
 
 func (block *Block) Hash() common.Hash {

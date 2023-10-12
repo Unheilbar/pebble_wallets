@@ -50,7 +50,7 @@ func (b *Blockchain) InsertBlock(block *types.Block) error {
 	}
 
 	rawdb.WriteBodyRLP(batch, block.Hash(), block.Number.Uint64(), rlpBlock)
-	return nil
+	return batch.Write()
 }
 
 // hasherPool holds LegacyKeccak256 hashers for rlpHash.
@@ -96,6 +96,7 @@ func Test__StateProcessor(t *testing.T) {
 	if err != nil {
 		log.Fatal("err commit deploy", err)
 	}
+	sb.TrieDB().Commit(newRoot, false)
 
 	//Insert block in rawdb
 	blockchain.InsertBlock(&block)
@@ -117,6 +118,8 @@ func Test__StateProcessor(t *testing.T) {
 	if err != nil {
 		log.Fatal("err state db open", err)
 	}
+
+	sb.TrieDB().Commit(newRoot, false)
 	//Insert block in rawdb
 	blockchain.InsertBlock(&block)
 
@@ -124,9 +127,10 @@ func Test__StateProcessor(t *testing.T) {
 	fmt.Println("transaction count", len(emissions))
 	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
 
-	_ = ReadBlock(blockchain.db, block.Hash(), block.Number.Uint64())
+	// chainBlock := ReadBlock(blockchain.db, block.Hash(), block.Number.Uint64())
+	//
 	//	for _, tx := range chainBlock.Transactions {
-	//		fmt.Println("chain transactino id", tx.Id)
+	//		fmt.Println("chain transactino id", tx.From.Hex())
 	//	}
 }
 

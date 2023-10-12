@@ -2,7 +2,6 @@ package tests
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"log"
 	"math/big"
 	"strings"
@@ -36,7 +35,6 @@ func (c *Chad) generateAccEmissionsTx(contrAddr common.Address) []*types.Transac
 		}
 		tx.Signature = sign
 
-		fmt.Println("transactjion id", tx.Id)
 		ret = append(ret, tx)
 	}
 	return ret

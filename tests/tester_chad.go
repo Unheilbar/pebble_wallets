@@ -91,7 +91,6 @@ func getContractDeployTX(contrCode []byte) *types.Transaction {
 		From:  common.Address{},
 		To:    common.Address{},
 		Input: contrCode,
-		Value: new(big.Int),
 	}
 }
 
@@ -107,7 +106,6 @@ func getContractEmissionTX(wallet string, contrAddr common.Address) *types.Trans
 		From:  common.Address{},
 		To:    contrAddr,
 		Input: input,
-		Value: new(big.Int),
 	}
 }
 
@@ -123,7 +121,6 @@ func getContractTransferTX(fromWallet string, toWallet string, contrAddr common.
 		From:  common.Address{},
 		To:    contrAddr,
 		Input: input,
-		Value: new(big.Int),
 	}
 }
 

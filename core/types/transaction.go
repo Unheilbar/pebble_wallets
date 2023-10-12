@@ -1,7 +1,7 @@
 package types
 
 import (
-	"math/big"
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -14,7 +14,6 @@ type Transaction struct {
 	Id        common.Hash
 	Signature []byte
 	Input     []byte
-	Value     *big.Int
 }
 
 func (tx *Transaction) Hash() common.Hash {
@@ -23,13 +22,26 @@ func (tx *Transaction) Hash() common.Hash {
 		To    common.Address
 		Id    common.Hash
 		Input []byte
-		Value *big.Int
 	}{
 		tx.From,
 		tx.To,
 		tx.Id,
 		tx.Input,
-		tx.Value,
 	})
 	return crypto.Keccak256Hash(val)
+}
+
+// Transactions implements DerivableList for transactions.
+type Transactions []*Transaction
+
+// Len returns the length of s.
+func (s Transactions) Len() int { return len(s) }
+
+// EncodeIndex encodes the i'th transaction to w. Note that this does not check for errors
+// because we assume that *Transaction will only ever contain valid txs that were either
+// constructed by decoding or via public API in this package.
+func (s Transactions) EncodeIndex(i int, w *bytes.Buffer) {
+	tx := s[i]
+
+	rlp.Encode(w, tx)
 }

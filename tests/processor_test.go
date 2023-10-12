@@ -52,8 +52,8 @@ func (b *Blockchain) InsertBlock(block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("insert", block.Hash(), block.Number.Uint64())
-	rawdb.WriteBodyRLP(batch, block.Hash(), block.Number.Uint64(), rlpBlock)
+	fmt.Println("insert", block.Hash(), block.Number().Uint64())
+	rawdb.WriteBodyRLP(batch, block.Hash(), block.Number().Uint64(), rlpBlock)
 	return batch.Write()
 }
 
@@ -90,8 +90,10 @@ func Test__StateProcessor(t *testing.T) {
 	deployStartTime := time.Now()
 
 	block := types.Block{
+		Header: &types.Header{
+			Number: big.NewInt(blockID),
+		},
 		Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
-		Number:       big.NewInt(blockID),
 	}
 
 	receipts := stProcessor.Process(block, statedb)
@@ -118,8 +120,10 @@ func Test__StateProcessor(t *testing.T) {
 	emissionsStartTime := time.Now()
 
 	block = types.Block{
+		Header: &types.Header{
+			Number: big.NewInt(blockID),
+		},
 		Transactions: emissions,
-		Number:       big.NewInt(blockID),
 	}
 	receipts = stProcessor.Process(block, statedb)
 
@@ -145,8 +149,10 @@ func Test__StateProcessor(t *testing.T) {
 	transfersStartTime := time.Now()
 	receipts = stProcessor.Process(
 		types.Block{
+			Header: &types.Header{
+				Number: big.NewInt(blockID),
+			},
 			Transactions: transfers,
-			Number:       big.NewInt(blockID),
 		},
 		statedb)
 
@@ -183,22 +189,19 @@ func Test__StateProcessor(t *testing.T) {
 	fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
 	fmt.Println("emis moment Balance", getWalletBalanceForRoot(emisRoot, controlWallet, sb, contrAddr))
 
-	bl := &types.Block{
-		Transactions: transfers,
-		Receipts:     receipts,
-		StateRoot:    newRoot,
-		Number:       big.NewInt(blockID)}
+	h := &types.Header{Number: big.NewInt(blockID), Root: newRoot}
+	bl := types.NewBlock(h, transfers, receipts)
 	insertStart := time.Now()
 	err = blockchain.InsertBlock(bl)
 	fmt.Println("insert block time ", time.Since(insertStart))
 	if err != nil {
 		log.Fatal(err)
 	}
-	readBlock := ReadBlock(blockchain.db, bl.Hash(), bl.Number.Uint64())
+	readBlock := ReadBlock(blockchain.db, bl.Hash(), bl.Number().Uint64())
 	fmt.Println(readBlock.Transactions[0].Id)
-	walletBalance1 := getWalletBalanceForRoot(readBlock.StateRoot, readBlock.Transactions[1].From.Hex(), sb, contrAddr)
-	expected := uint64(tester.fakeBalances[readBlock.Transactions[1].From.Hex()])
-	assert.Equal(t, expected, walletBalance1.Uint64())
+	walletBalance1 := getWalletBalanceForRoot(readBlock.Root(), readBlock.Transactions[1].From.Hex(), sb, contrAddr)
+	expected := tester.fakeBalances[readBlock.Transactions[1].From.Hex()]
+	assert.Equal(t, expected, uint(walletBalance1.Uint64()))
 }
 
 func newProcessor() *core.StateProcessor {

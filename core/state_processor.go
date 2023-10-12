@@ -26,7 +26,7 @@ func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*t
 	var (
 		receipts    []*types.Receipt
 		blockHash   = block.Hash()
-		blockNumber = block.Number
+		blockNumber = block.Number()
 	)
 	evm := runtime.NewEnv(p.cfg)
 	evm.SetBlockContext(newBlockContext(p.cfg, blockNumber))
@@ -56,10 +56,10 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 	preCheck(tx)
 
 	if contractCreation {
-		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, p.cfg.GasLimit, tx.Value)
+		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, p.cfg.GasLimit, new(big.Int))
 	} else {
 		//TODO save unique tx hash?
-		_, _, vmerr = evm.Call(sender, tx.To, tx.Input, p.cfg.GasLimit, tx.Value)
+		_, _, vmerr = evm.Call(sender, tx.To, tx.Input, p.cfg.GasLimit, new(big.Int))
 	}
 
 	statedb.Finalise(true)

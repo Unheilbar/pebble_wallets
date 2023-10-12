@@ -1,9 +1,11 @@
 package types
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type Receipt struct {
@@ -28,3 +30,22 @@ const (
 	// ReceiptStatusSuccessful is the status code of a transaction if execution succeeded.
 	ReceiptStatusSuccessful = uint64(1)
 )
+
+// Receipts implements DerivableList for receipts.
+type Receipts []*Receipt
+
+// Len returns the number of receipts in this list.
+func (rs Receipts) Len() int { return len(rs) }
+
+// EncodeIndex encodes the i'th receipt to w.
+func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
+	r := rs[i]
+	data := &receiptRLP{r.Logs, r.Status}
+
+	rlp.Encode(w, data)
+}
+
+type receiptRLP struct {
+	logs   []*Log
+	status uint64
+}

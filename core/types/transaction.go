@@ -9,11 +9,12 @@ import (
 )
 
 type Transaction struct {
-	From      common.Address
-	To        common.Address
-	Id        common.Hash
-	Signature []byte
-	Input     []byte
+	From       common.Address
+	To         common.Address
+	Id         common.Hash
+	Signature  []byte
+	Input      []byte
+	AccessList // TODO for later
 }
 
 func (tx *Transaction) Hash() common.Hash {
@@ -44,4 +45,13 @@ func (s Transactions) EncodeIndex(i int, w *bytes.Buffer) {
 	tx := s[i]
 
 	rlp.Encode(w, tx)
+}
+
+// AccessList is an EIP-2930 access list.
+type AccessList []AccessTuple
+
+// AccessTuple is the element type of an access list.
+type AccessTuple struct {
+	Address     common.Address `json:"address"     gencodec:"required"`
+	StorageKeys []common.Hash  `json:"storageKeys" gencodec:"required"`
 }

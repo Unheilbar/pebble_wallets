@@ -55,7 +55,14 @@ func (w *worker) prepareWork() (*environment, error) {
 	return nil, nil //TODO setup engine, current environment from blockchain, new header etc.
 }
 
-func (w *worker) commitTransactions(env *environment, txs *types.Transaction, interrupt *atomic.Int32) error {
+func (w *worker) commitTransactions(env *environment, txs []*types.Transaction, interrupt *atomic.Int32) error {
+	// commit transactions
+	receipts, err := core.ApplyTransactions(w.chain, env.state, env.header, txs) // TODO probably won't be any errors here, since we dont control signal interrupt yet
+	if err != nil {
+		return err
+	}
+	env.txs = append(env.txs, txs...)
+	env.receipts = append(env.receipts, receipts...)
 	return nil
 }
 

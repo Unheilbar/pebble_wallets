@@ -15,6 +15,11 @@ type Header struct {
 	ReceiptHash common.Hash
 	Number      *big.Int
 	Root        common.Hash // state root
+	Time        uint64
+}
+
+func (h *Header) Hash() common.Hash {
+	return rlpHash(h)
 }
 
 type Block struct {
@@ -45,4 +50,5 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 	return b
 }
 func (b *Block) Number() *big.Int  { return new(big.Int).Set(b.Header.Number) }
+func (b *Block) NumberU64() uint64 { return b.Number().Uint64() }
 func (b *Block) Root() common.Hash { return b.Header.Root }

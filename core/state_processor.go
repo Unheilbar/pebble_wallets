@@ -25,7 +25,7 @@ func NewStateProcessor(cfg *runtime.Config) *StateProcessor {
 func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*types.Receipt {
 	var (
 		receipts    []*types.Receipt
-		blockHash   = block.Hash
+		blockHash   = block.Hash()
 		blockNumber = block.Number
 	)
 	evm := runtime.NewEnv(p.cfg)

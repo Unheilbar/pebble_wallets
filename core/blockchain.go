@@ -66,7 +66,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 		log.Fatal("err commit tdb deploy", err)
 	}
 
-	fmt.Println("deploy receipt addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
+	log.Println("deploy receipt addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
 	return bc
 }
 

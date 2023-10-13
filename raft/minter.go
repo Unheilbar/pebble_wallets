@@ -44,10 +44,12 @@ func newMinter(eth *RaftService, blockTime time.Duration) *minter {
 
 		txPreChan: make(chan core.NewTxsEvent, 4096),
 	}
-	fmt.Println(minter.chain.CurrentBlock().Number)
+	log.Print(minter.chain.CurrentBlock().Number)
 	minter.speculativeChain.clear(minter.chain.CurrentBlock())
 	// go minter.eventLoop() // we don't catch events
 	go minter.mintingLoop()
+	go minter.eventLoop()
+
 	minter.start()
 	return minter
 }
@@ -175,6 +177,22 @@ func (minter *minter) mintingLoop() {
 	for range minter.shouldMine.Out() {
 		throttledMintNewBlock()
 	}
+}
+
+func (minter *minter) eventLoop() {
+	for {
+		select {
+		case <-minter.txPreChan:
+			if atomic.LoadInt32(&minter.minting) == 1 {
+				minter.requestMinting()
+			}
+		case <-time.After(time.Second):
+			if atomic.LoadInt32(&minter.minting) == 1 {
+				minter.requestMinting()
+			}
+		}
+	}
+
 }
 
 func generateNanoTimestamp(parent *types.Header) (tstamp int64) {

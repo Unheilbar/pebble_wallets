@@ -27,7 +27,7 @@ contract State {
         balances[walletId] = balances[walletId] - amount;
     }
 
-    function setSender(address sender ,string memory walletId) internal innerCall {
+    function setSender(address sender ,string memory walletId) public innerCall {
         senders[sender] = walletId;
     }
 

@@ -19,7 +19,7 @@ contract Transfer {
     }
 
 
-    function transfer(address origin, string memory fromWalletId, string memory toWalletId, uint256 amount) internal {
+    function transfer(address origin, string memory fromWalletId, string memory toWalletId, uint256 amount) public {
         string memory walletFromOrigin = stateContract.getSender(origin);
 
         require(keccak256(bytes(walletFromOrigin)) == keccak256(bytes(fromWalletId))); //check correct sender
@@ -43,7 +43,7 @@ contract Transfer {
         stateContract.add(toWalletId, amount);
         stateContract.sub(toWalletId, amount);
         stateContract.addMonth(toWalletId, amount);
-        
+
         eventContract.emitTransfer(fromWalletId, toWalletId, amount);
     }
 }

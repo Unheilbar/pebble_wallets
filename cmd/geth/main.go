@@ -17,13 +17,14 @@ import (
 var blockThrottle = time.Millisecond * 50
 
 func main() {
-	f, err := os.OpenFile(fmt.Sprintf("./logs/%dnode.log", time.Now().Second()), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile(fmt.Sprintf("./logs/node.log", time.Now().Second()), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	defer f.Close()
 
 	log.SetOutput(f)
+	log.Print("start")
 	node, e := makeFullNode()
 	RegisterRaftService(node, e)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

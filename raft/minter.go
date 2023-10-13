@@ -44,6 +44,7 @@ func newMinter(eth *RaftService, blockTime time.Duration) *minter {
 
 		txPreChan: make(chan core.NewTxsEvent, 4096),
 	}
+	fmt.Println(minter.chain.CurrentBlock().Number)
 	minter.speculativeChain.clear(minter.chain.CurrentBlock())
 	// go minter.eventLoop() // we don't catch events
 	go minter.mintingLoop()

@@ -59,7 +59,8 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	if err != nil {
 		log.Fatal("err commit sb deploy", err)
 	}
-
+	block.Header.Root = newRoot
+	bc.currentBlock.Store(block.Header)
 	err = bc.stateCache.TrieDB().Commit(newRoot, false)
 	if err != nil {
 		log.Fatal("err commit tdb deploy", err)

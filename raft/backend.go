@@ -40,7 +40,7 @@ func NewRaft(e *eth.Ethereum, blockTime time.Duration) *RaftService {
 }
 
 func (service *RaftService) TxPool() *txpool.TxPool {
-	return service.TxPool()
+	return service.txPool
 }
 
 func (service *RaftService) Blockchain() *core.Blockchain {

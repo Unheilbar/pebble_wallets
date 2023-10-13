@@ -86,7 +86,7 @@ func (c *Chad) generateAccs(size int) {
 	}
 }
 
-func getContractDeployTX(contrCode []byte) *types.Transaction {
+func GetContractDeployTX(contrCode []byte) *types.Transaction {
 	return &types.Transaction{
 		From:  common.Address{},
 		To:    common.Address{},

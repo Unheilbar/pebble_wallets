@@ -2,8 +2,13 @@ package core
 
 import (
 	"fmt"
+	"log"
+	"math/big"
 	"sync"
+	"sync/atomic"
+	"time"
 
+	"github.com/Unheilbar/pebbke_wallets/binding"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -13,10 +18,11 @@ import (
 
 type Blockchain struct {
 	// Databases
-	db         ethdb.Database
-	triedb     *trie.Database // The database handler for maintaining trie nodes.
-	stateCache state.Database // State database to reuse between imports (contains state cache)
-	processor  Processor      // Block transaction processor interface
+	db           ethdb.Database
+	triedb       *trie.Database               // The database handler for maintaining trie nodes.
+	stateCache   state.Database               // State database to reuse between imports (contains state cache)
+	processor    Processor                    // Block transaction processor interface
+	currentBlock atomic.Pointer[types.Header] // Current head of the chain
 
 	chainmu sync.RWMutex // blockchain insertion lock
 }
@@ -33,6 +39,33 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	bc.triedb = trie.NewDatabase(rdb, trie.HashDefaults)
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 
+	// TODO too dirty, just for test reasons
+	var blockID int64 = 1
+	deployStartTime := time.Now()
+
+	block := types.Block{
+		Header: &types.Header{
+			Number: big.NewInt(blockID),
+		},
+		Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
+	}
+	statedb, err := state.New(common.Hash{}, bc.stateCache, nil)
+	stProcessor := NewStateProcessor(getDefaultCfg())
+	receipts := stProcessor.Process(block, statedb)
+	receipt := receipts[0]
+	contrAddr := receipt.ContractAddress
+
+	newRoot, err := statedb.Commit(uint64(blockID), true)
+	if err != nil {
+		log.Fatal("err commit sb deploy", err)
+	}
+
+	err = bc.stateCache.TrieDB().Commit(newRoot, false)
+	if err != nil {
+		log.Fatal("err commit tdb deploy", err)
+	}
+
+	fmt.Println("deploy receipt addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
 	return bc
 }
 
@@ -56,4 +89,16 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 	}
 
 	return nil
+}
+
+func (bc *Blockchain) CurrentBlock() *types.Header {
+	return bc.currentBlock.Load()
+}
+
+func getContractDeployTX(contrCode []byte) *types.Transaction {
+	return &types.Transaction{
+		From:  common.Address{},
+		To:    common.Address{},
+		Input: contrCode,
+	}
 }

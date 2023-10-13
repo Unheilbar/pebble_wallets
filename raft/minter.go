@@ -44,10 +44,10 @@ func newMinter(eth *RaftService, blockTime time.Duration) *minter {
 
 		txPreChan: make(chan core.NewTxsEvent, 4096),
 	}
-
+	minter.speculativeChain.clear(minter.chain.CurrentBlock())
 	// go minter.eventLoop() // we don't catch events
 	go minter.mintingLoop()
-
+	minter.start()
 	return minter
 }
 
@@ -80,7 +80,7 @@ type work struct {
 // Assumes mu is held.
 func (minter *minter) createWork() *work {
 	parent := minter.speculativeChain.head
-	parentNumber := parent.Number()
+	parentNumber := parent.Number
 	tstamp := generateNanoTimestamp(parent)
 
 	newBlockNumber := parentNumber.Add(parentNumber, common.Big1)
@@ -91,7 +91,7 @@ func (minter *minter) createWork() *work {
 		Time:       uint64(tstamp),
 	}
 
-	publicState, err := minter.chain.StateAt(parent.Root())
+	publicState, err := minter.chain.StateAt(parent.Root)
 	if err != nil {
 		panic(fmt.Sprint("failed to get parent state: ", err))
 	}
@@ -166,6 +166,8 @@ func (minter *minter) mintingLoop() {
 	throttledMintNewBlock := throttle(minter.blockTime, func() {
 		if atomic.LoadInt32(&minter.minting) == 1 {
 			minter.mintNewBlock()
+		} else {
+			log.Print("im not a minter")
 		}
 	})
 
@@ -174,8 +176,8 @@ func (minter *minter) mintingLoop() {
 	}
 }
 
-func generateNanoTimestamp(parent *types.Block) (tstamp int64) {
-	parentTime := int64(parent.Time())
+func generateNanoTimestamp(parent *types.Header) (tstamp int64) {
+	parentTime := int64(parent.Time)
 	tstamp = time.Now().UnixNano()
 
 	if parentTime >= tstamp {

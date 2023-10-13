@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"time"
 
 	"log"
@@ -15,7 +17,7 @@ import (
 var blockThrottle = time.Millisecond * 50
 
 func main() {
-	f, err := os.OpenFile(fmt.Sprintf("node%d.log", time.Now().Second()), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile(fmt.Sprintf("./logs/%dnode.log", time.Now().Second()), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
@@ -24,6 +26,9 @@ func main() {
 	log.SetOutput(f)
 	node, e := makeFullNode()
 	RegisterRaftService(node, e)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	<-ctx.Done()
 }
 
 func makeFullNode() (*node.Node, *eth.Ethereum) {

@@ -93,7 +93,7 @@ func Test__StateProcessor(t *testing.T) {
 		Header: &types.Header{
 			Number: big.NewInt(blockID),
 		},
-		Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
+		Transactions: []*types.Transaction{GetContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
 	}
 
 	receipts := stProcessor.Process(block, statedb)

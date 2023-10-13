@@ -235,7 +235,7 @@ func getDefaultCfg() *runtime.Config {
 		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
 	}
 
-	return &runtime.Config{}
+	return cfg
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the

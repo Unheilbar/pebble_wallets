@@ -1,4 +1,4 @@
-package tests
+package chad
 
 import (
 	"crypto/ecdsa"
@@ -26,7 +26,7 @@ type Chad struct {
 
 const genesisPrivate = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19"
 
-func (c *Chad) generateAccEmissionsTx(contrAddr common.Address) []*types.Transaction {
+func (c *Chad) GenerateAccEmissionsTx(contrAddr common.Address) []*types.Transaction {
 	var ret []*types.Transaction
 
 	for _, acc := range c.accounts {
@@ -44,7 +44,7 @@ func (c *Chad) generateAccEmissionsTx(contrAddr common.Address) []*types.Transac
 	return ret
 }
 
-func (c *Chad) generateTransfers(size int, contrAddr common.Address) []*types.Transaction {
+func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Transaction {
 	var ret []*types.Transaction
 	var ptrFrom int
 	var ptrTo int
@@ -69,7 +69,7 @@ func (c *Chad) generateTransfers(size int, contrAddr common.Address) []*types.Tr
 	return ret
 }
 
-func (c *Chad) generateAccs(size int) {
+func (c *Chad) GenerateAccs(size int) {
 	c.accounts = make(map[common.Address]chadAcc)
 	c.fakeBalances = make(map[string]uint)
 	prev := genesisPrivate

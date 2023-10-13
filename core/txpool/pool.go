@@ -34,6 +34,7 @@ func (tp *TxPool) Pending(size uint) []*types.Transaction {
 		if counter == size {
 			break
 		}
+		counter++
 		tp.pendingTx[hash] = tx
 		txs = append(txs, tx)
 		delete(tp.queuedTx, hash)

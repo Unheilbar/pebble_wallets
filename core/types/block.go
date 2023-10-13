@@ -30,7 +30,7 @@ type Block struct {
 }
 
 func (block *Block) Hash() common.Hash {
-	return rlpHash(block.Number)
+	return block.Header.Hash()
 }
 
 var hasherPool = sync.Pool{
@@ -49,6 +49,7 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 	b.Header = header
 	return b
 }
+
 func (b *Block) Number() *big.Int  { return new(big.Int).Set(b.Header.Number) }
 func (b *Block) NumberU64() uint64 { return b.Number().Uint64() }
 func (b *Block) Root() common.Hash { return b.Header.Root }

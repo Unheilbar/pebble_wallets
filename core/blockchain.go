@@ -11,8 +11,10 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/binding"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 )
 
@@ -90,6 +92,68 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 	}
 
 	return nil
+}
+
+func (bc *Blockchain) InsertChain(block *types.Block) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+	return bc.writeBlockAndSetHead(block)
+
+}
+
+func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.StateDB) error {
+
+	// Irrelevant of the canonical status, write the block itself to the database.
+	//
+	// Note all the components of block(td, hash->number map, header, body, receipts)
+	// should be written atomically. BlockBatch is used for containing all components.
+	blockBatch := bc.db.NewBatch()
+	rlpBlock, err := rlp.EncodeToBytes(block)
+	if err != nil {
+		return err
+	}
+	rawdb.WriteBodyRLP(blockBatch, block.Hash(), block.Number().Uint64(), rlpBlock)
+
+	if err := blockBatch.Write(); err != nil {
+		log.Fatal("Failed to write block into disk", "err", err)
+	}
+	// Commit all cached state changes into underlying memory database.
+	root, err := state.Commit(block.NumberU64(), true)
+	if err != nil {
+		return err
+	}
+
+	return bc.triedb.Commit(root, false)
+}
+
+// writeBlockAndSetHead is the internal implementation of WriteBlockAndSetHead.
+// This function expects the chain mutex to be held.
+func (bc *Blockchain) writeBlockAndSetHead(block *types.Block) error {
+	state, err := bc.StateAt(block.Root())
+	if err != nil {
+		return err
+	}
+
+	if err := bc.writeBlockWithState(block, state); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bc *Blockchain) writeHeadBlock(block *types.Block) {
+	// Add the block to the canonical chain number scheme and mark as the head
+	batch := bc.db.NewBatch()
+	rawdb.WriteHeadHeaderHash(batch, block.Hash())
+	rawdb.WriteHeadFastBlockHash(batch, block.Hash())
+	rawdb.WriteCanonicalHash(batch, block.Hash(), block.NumberU64())
+	// rawdb.WriteTxLookupEntriesByBlock(batch, block) TODO cant write lookup because no compatibility
+	rawdb.WriteHeadBlockHash(batch, block.Hash())
+
+	// Flush the whole batch into the disk, exit the node if failed
+	if err := batch.Write(); err != nil {
+		log.Fatal("Failed to update chain indexes and markers", "err", err)
+	}
 }
 
 func (bc *Blockchain) CurrentBlock() *types.Header {

@@ -16,6 +16,7 @@ func (chain *speculativeChain) extend(block *types.Block) {
 	// chain.recordProposedTransactions(block.Transactions()) // TODO so we won't take txes from tx pool when they come there again
 	chain.unappliedBlocks.Append(block)
 }
+
 func (chain *speculativeChain) clear(block *types.Header) {
 	chain.head = block
 }

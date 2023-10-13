@@ -69,9 +69,6 @@ func NewStateTransition(evm *vm.EVM, tx *types.Transaction) *StateTransition {
 }
 
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
-	if err := st.preCheck(); err != nil {
-		return nil, err
-	}
 
 	var (
 		msg              = st.tx
@@ -79,6 +76,12 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		rules            = st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, st.evm.Context.Random != nil, st.evm.Context.Time)
 		contractCreation = msg.To == common.Address{}
 	)
+
+	if !contractCreation {
+		if err := st.preCheck(); err != nil {
+			return nil, err
+		}
+	}
 
 	st.state.Prepare(rules, msg.From, st.evm.Context.Coinbase, &msg.To, vm.ActivePrecompiles(rules), nil) //TODO Later add access list to Transaction
 

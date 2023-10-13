@@ -12,6 +12,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/binding"
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/tests/chad"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -65,9 +66,9 @@ func Test__StateProcessor(t *testing.T) {
 		log.Fatal("create blockchain ", err)
 	}
 
-	var tester Chad
+	var tester chad.Chad
 
-	tester.generateAccs(walletsAmount)
+	tester.GenerateAccs(walletsAmount)
 	stProcessor := newProcessor()
 
 	rdb, err := rawdb.NewPebbleDBDatabase("../testdb", 1024, 16, "some", false, false)
@@ -93,7 +94,7 @@ func Test__StateProcessor(t *testing.T) {
 		Header: &types.Header{
 			Number: big.NewInt(blockID),
 		},
-		Transactions: []*types.Transaction{GetContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
+		Transactions: []*types.Transaction{chad.GetContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
 	}
 
 	receipts := stProcessor.Process(block, statedb)
@@ -116,7 +117,7 @@ func Test__StateProcessor(t *testing.T) {
 	if err != nil {
 		log.Fatal("err state db open", err)
 	}
-	emissions := tester.generateAccEmissionsTx(receipts[0].ContractAddress)
+	emissions := tester.GenerateAccEmissionsTx(receipts[0].ContractAddress)
 	emissionsStartTime := time.Now()
 
 	block = types.Block{
@@ -141,7 +142,7 @@ func Test__StateProcessor(t *testing.T) {
 	fmt.Println("emission done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(walletsAmount)/evaltime.Seconds(), "tx/s")
 
 	blockID++
-	transfers := tester.generateTransfers(transfersAmount, contrAddr)
+	transfers := tester.GenerateTransfers(transfersAmount, contrAddr)
 	statedb, err = state.New(newRoot, sb, nil)
 	if err != nil {
 		log.Fatal("err state db open", err)
@@ -166,11 +167,11 @@ func Test__StateProcessor(t *testing.T) {
 	}
 	evaltime = time.Since(transfersStartTime)
 
-	controlWallet := tester.orderedAccs[1].from.Hex()
-	fmt.Println("transfers done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(transfersAmount)/evaltime.Seconds(), "tx/s")
-	fmt.Println("control fake balance: ", tester.fakeBalances[controlWallet])
-	fmt.Println("contr evm balance:    ", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
-	fmt.Println("Close databases...root", newRoot)
+	// controlWallet := tester.orderedAccs[1].from.Hex()
+	// fmt.Println("transfers done receipts len", len(receipts), "status", receipts[0].Status, "root", newRoot, "time", evaltime, float64(transfersAmount)/evaltime.Seconds(), "tx/s")
+	// fmt.Println("control fake balance: ", tester.fakeBalances[controlWallet])
+	// fmt.Println("contr evm balance:    ", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
+	// fmt.Println("Close databases...root", newRoot)
 
 	err = rdb.Close()
 	err = sb.DiskDB().Close()
@@ -186,8 +187,8 @@ func Test__StateProcessor(t *testing.T) {
 	triedb = trie.NewDatabase(rdb, trie.HashDefaults)
 	sb = state.NewDatabaseWithNodeDB(rdb, triedb)
 	statedb, err = state.New(newRoot, sb, nil)
-	fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
-	fmt.Println("emis moment Balance", getWalletBalanceForRoot(emisRoot, controlWallet, sb, contrAddr))
+	// fmt.Println("reopen DB.. control Balance", getWalletBalanceForRoot(newRoot, controlWallet, sb, contrAddr))
+	// fmt.Println("emis moment Balance", getWalletBalanceForRoot(emisRoot, controlWallet, sb, contrAddr))
 
 	h := &types.Header{Number: big.NewInt(blockID), Root: newRoot}
 	bl := types.NewBlock(h, transfers, receipts)

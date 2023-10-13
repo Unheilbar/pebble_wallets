@@ -19,10 +19,10 @@ build-complex:
 	abigen --abi contracts/State.abi --bin contracts/State.bin --pkg binding --type State --out binding/state.go
 # proxy
 	docker run -v `pwd`/contracts:/contracts/sources ethereum/solc:stable -o /contracts/sources --abi --bin /contracts/sources/complex/proxy.sol --overwrite --via-ir --optimize
-	abigen --abi contracts/Proxy.abi --bin contracts/Proxy.bin --pkg binding --type State --out binding/proxy.go
+	abigen --abi contracts/Proxy.abi --bin contracts/Proxy.bin --pkg binding --type Proxy --out binding/proxy.go
 # events
 	docker run -v `pwd`/contracts:/contracts/sources ethereum/solc:stable -o /contracts/sources --abi --bin /contracts/sources/complex/events.sol --overwrite --via-ir --optimize
-	abigen --abi contracts/Events.abi --bin contracts/Events.bin --pkg binding --type State --out binding/events.go
+	abigen --abi contracts/Event.abi --bin contracts/Event.bin --pkg binding --type Events --out binding/events.go
 up-full-node:
 	rm -rf logs/*
 	go run cmd/geth/*.go

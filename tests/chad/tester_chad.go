@@ -86,18 +86,18 @@ func (c *Chad) GenerateAccs(size int) {
 	}
 }
 
-func GetContractDeployTX(contrCode []byte) *types.Transaction {
+func (c *Chad) GetContractDeployTX(senderId int, contrCode []byte) *types.Transaction {
 	return &types.Transaction{
-		From:  common.Address{},
+		From:  c.orderedAccs[senderId].from,
 		To:    common.Address{},
 		Input: contrCode,
 	}
 }
 
-const emissionVal = 10000000
+const emissionVal = 1000
 
 func getContractEmissionTX(wallet string, contrAddr common.Address) *types.Transaction {
-	input, err := packTX("setBalance", wallet, big.NewInt(emissionVal))
+	input, err := packTX("emission", wallet, big.NewInt(emissionVal))
 	if err != nil {
 		log.Fatal("err generate emission input", err, input)
 	}
@@ -125,7 +125,7 @@ func getContractTransferTX(fromWallet string, toWallet string, contrAddr common.
 }
 
 func packTX(method string, params ...interface{}) ([]byte, error) {
-	bind := binding.StorageABI
+	bind := binding.ProxyABI
 
 	pabi, err := abi.JSON(strings.NewReader(bind))
 

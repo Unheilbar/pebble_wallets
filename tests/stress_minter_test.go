@@ -31,7 +31,6 @@ func Test__RunStressMinter(t *testing.T) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	api := eth.NewApi(e)
-	api.SendTx(context.Background(), chad.GetContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:])))
 
 	runStress(api)
 	<-ctx.Done()
@@ -49,17 +48,33 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
 	log.Print("raft service registered")
 }
 
-var minterStressWalletsAmount = 10000
-var contrAddr = common.HexToAddress("0x5a443704dd4B594B382c22a083e2BD3090A6feF3")
+var minterStressWalletsAmount = 1000
+var minterStressTransfersAmount = 100000
+var Proxy = common.HexToAddress("0x5dBC355B93DD7A0C0D759Fd6a7859d2610219221")
+var Transfer = common.HexToAddress("0x6C02e060D0E1CAD7c039A9aE3aBc29A40b3DFF1f")
+var State = common.HexToAddress("0xE11f8d55a93bF877a091a3C54C071AAc5cC0b01D")
+var Event = common.HexToAddress("0x6027946B05e7ab6Ef245093622AB18eaD5453877")
 
 func runStress(api *eth.EthAPIBackend) {
 	var tester chad.Chad
-
 	tester.GenerateAccs(minterStressWalletsAmount)
-	emissions := tester.GenerateAccEmissionsTx(contrAddr)
+	api.SendTx(context.Background(), tester.GetContractDeployTX(2, common.Hex2Bytes(binding.StateMetaData.Bin[2:])))
+	time.Sleep(time.Second * 2) // wait to apply
+	api.SendTx(context.Background(), tester.GetContractDeployTX(3, common.Hex2Bytes(binding.EventsMetaData.Bin[2:])))
+	time.Sleep(time.Second * 2) // wait to apply
+	api.SendTx(context.Background(), tester.GetContractDeployTX(4, common.Hex2Bytes(binding.TransferMetaData.Bin[2:])))
+	time.Sleep(time.Second * 2) // wait to apply
+	api.SendTx(context.Background(), tester.GetContractDeployTX(5, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:])))
+
+	time.Sleep(time.Second * 2) // wait for tx to apply
+	emissions := tester.GenerateAccEmissionsTx(Proxy)
 	for _, tx := range emissions {
 		api.SendTx(context.Background(), tx)
 	}
 
-	time.Sleep(time.Second * 10) // wait for tx to apply
+	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)
+	for _, tx := range transfers {
+		api.SendTx(context.Background(), tx)
+	}
+
 }

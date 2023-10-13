@@ -121,6 +121,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		if created {
 			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, 1) //TODO think of something
 			receipt.ContractAddress = contractAddress
+			log.Println("successed deploy", contractAddress)
 		}
 
 		receipt.Logs = getLogs(tx.Hash(), header.Number.Uint64(), header.Hash(), statedb)

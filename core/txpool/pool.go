@@ -1,4 +1,4 @@
-package pool
+package txpool
 
 import (
 	"sync"
@@ -26,7 +26,7 @@ func (tp *TxPool) AddTx(tx *types.Transaction) {
 	tp.mx.Unlock()
 }
 
-func (tp *TxPool) GetTxs(size uint) []*types.Transaction {
+func (tp *TxPool) Pending(size uint) []*types.Transaction {
 	tp.mx.Lock()
 	var counter uint
 	var txs []*types.Transaction

@@ -86,26 +86,28 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 	return receipt, nil
 }
 
-func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.Header, txs []*types.Transaction) ([]*types.Receipt, error) {
+func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.Header, txs []*types.Transaction) ([]*types.Transaction, []*types.Receipt, error) {
 	cfg := getDefaultCfg()
 	evm := runtime.NewEnv(cfg)
 	blockCtx := NewEVMBlockContext(header)
 	evm.SetBlockContext(blockCtx)
 	var receipts []*types.Receipt
-
+	var appliedTxs []*types.Transaction
 	blockHash := header.Hash()
 	blockNumber := header.Number
-
-	for i, tx := range txs {
+	txCount := 0
+	for _, tx := range txs {
 		evm.Reset(newTxContext(tx.From), statedb)
 		snap := statedb.Snapshot()
-		statedb.SetTxContext(tx.Hash(), i)
+		statedb.SetTxContext(tx.Hash(), txCount)
 		result, err := ApplyMessage(evm, tx)
 		if err != nil {
 			statedb.RevertToSnapshot(snap)
 			log.Println("tx failed, skipped", err)
+			continue
 		}
-
+		txCount++
+		appliedTxs = append(appliedTxs, tx)
 		receipt := &types.Receipt{}
 		if result.Failed() {
 			receipt.Status = types.ReceiptStatusFailed
@@ -133,7 +135,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipts = append(receipts, receipt)
 	}
 
-	return receipts, nil
+	return appliedTxs, receipts, nil
 }
 
 func getLogs(txHash common.Hash, blockNumber uint64, blockHash common.Hash, statedb *state.StateDB) []*types.Log {

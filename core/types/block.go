@@ -52,3 +52,4 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 func (b *Block) Number() *big.Int  { return new(big.Int).Set(b.Header.Number) }
 func (b *Block) NumberU64() uint64 { return b.Number().Uint64() }
 func (b *Block) Root() common.Hash { return b.Header.Root }
+func (b *Block) Time() uint64      { return b.Header.Time }

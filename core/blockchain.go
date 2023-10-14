@@ -21,10 +21,10 @@ import (
 type Blockchain struct {
 	// Databases
 	db           ethdb.Database
-	triedb       *trie.Database               // The database handler for maintaining trie nodes.
-	stateCache   state.Database               // State database to reuse between imports (contains state cache)
-	processor    Processor                    // Block transaction processor interface
-	currentBlock atomic.Pointer[types.Header] // Current head of the chain
+	triedb       *trie.Database              // The database handler for maintaining trie nodes.
+	stateCache   state.Database              // State database to reuse between imports (contains state cache)
+	processor    Processor                   // Block transaction processor interface
+	currentBlock atomic.Pointer[types.Block] // Current head of the chain
 
 	chainmu sync.RWMutex // blockchain insertion lock
 }
@@ -62,7 +62,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 		log.Fatal("err commit sb deploy", err)
 	}
 	block.Header.Root = newRoot
-	bc.currentBlock.Store(block.Header)
+	bc.currentBlock.Store(&block)
 	err = bc.stateCache.TrieDB().Commit(newRoot, false)
 	if err != nil {
 		log.Fatal("err commit tdb deploy", err)
@@ -123,7 +123,7 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 		return err
 	}
 
-	return bc.triedb.Commit(root, false)
+	return bc.stateCache.TrieDB().Commit(root, false)
 }
 
 // writeBlockAndSetHead is the internal implementation of WriteBlockAndSetHead.
@@ -156,7 +156,7 @@ func (bc *Blockchain) writeHeadBlock(block *types.Block) {
 	}
 }
 
-func (bc *Blockchain) CurrentBlock() *types.Header {
+func (bc *Blockchain) CurrentBlock() *types.Block {
 	return bc.currentBlock.Load()
 }
 

@@ -26,6 +26,7 @@ contract Proxy {
     }
 
     function transfer(string memory fromWalletId, string memory toWalletId, uint256 amount) external{
+        revert("poshel nahui");
         transferContract.transfer(msg.sender, fromWalletId, toWalletId, amount);
     }
 }

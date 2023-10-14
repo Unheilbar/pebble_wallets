@@ -20,9 +20,11 @@ func New() *TxPool {
 	}
 }
 
-func (tp *TxPool) AddTx(tx *types.Transaction) {
+func (tp *TxPool) AddTxs(txs []*types.Transaction) {
 	tp.mx.Lock()
-	tp.queuedTx[tx.Hash()] = tx
+	for _, tx := range txs {
+		tp.queuedTx[tx.Hash()] = tx
+	}
 	tp.mx.Unlock()
 }
 

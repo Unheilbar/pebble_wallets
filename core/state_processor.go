@@ -2,11 +2,13 @@ package core
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
@@ -87,6 +89,10 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 }
 
 func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.Header, txs []*types.Transaction) ([]*types.Transaction, []*types.Receipt, error) {
+	if len(txs) == 0 {
+		return nil, nil, nil
+	}
+
 	cfg := getDefaultCfg()
 	evm := runtime.NewEnv(cfg)
 	blockCtx := NewEVMBlockContext(header)
@@ -110,6 +116,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		appliedTxs = append(appliedTxs, tx)
 		receipt := &types.Receipt{}
 		if result.Failed() {
+			fmt.Println("failed")
 			receipt.Status = types.ReceiptStatusFailed
 		} else {
 			receipt.Status = types.ReceiptStatusSuccessful
@@ -130,6 +137,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipt.TransactionIndex = uint(statedb.TxIndex())
 		revertReason := result.Revert()
 		if revertReason != nil {
+			fmt.Println(abi.UnpackRevert(revertReason))
 			receipt.RevertReason = revertReason
 		}
 

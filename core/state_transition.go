@@ -97,6 +97,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Increment the nonce for the next transaction
 		// st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1) add unique tx ID to states
 		ret, _, vmerr = st.evm.Call(sender, st.to(), msg.Input, remainGas, value)
+		if vmerr != nil {
+			fmt.Println(ret, vmerr)
+		}
 	}
 	return &ExecutionResult{
 		Err:        vmerr,

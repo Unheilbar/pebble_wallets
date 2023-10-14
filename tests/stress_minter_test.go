@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -49,7 +50,7 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
 }
 
 var minterStressWalletsAmount = 1000
-var minterStressTransfersAmount = 100000
+var minterStressTransfersAmount = 10000
 var Proxy = common.HexToAddress("0x5dBC355B93DD7A0C0D759Fd6a7859d2610219221")
 var Transfer = common.HexToAddress("0x6C02e060D0E1CAD7c039A9aE3aBc29A40b3DFF1f")
 var State = common.HexToAddress("0xE11f8d55a93bF877a091a3C54C071AAc5cC0b01D")
@@ -68,13 +69,10 @@ func runStress(api *eth.EthAPIBackend) {
 
 	time.Sleep(time.Second * 2) // wait for tx to apply
 	emissions := tester.GenerateAccEmissionsTx(Proxy)
-	for _, tx := range emissions {
-		api.SendTx(context.Background(), tx)
-	}
+	api.SendTxs(context.Background(), emissions)
 
 	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)
-	for _, tx := range transfers {
-		api.SendTx(context.Background(), tx)
-	}
+	fmt.Println(len(transfers))
+	api.SendTxs(context.Background(), transfers)
 
 }

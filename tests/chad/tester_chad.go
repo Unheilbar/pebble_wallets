@@ -2,6 +2,7 @@ package chad
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"log"
 	"math/big"
 	"strings"
@@ -48,6 +49,7 @@ func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Tr
 	var ret []*types.Transaction
 	var ptrFrom int
 	var ptrTo int
+	genesisId := 1
 	for i := 0; i < size; i++ {
 		accFrom := c.orderedAccs[ptrFrom%len(c.orderedAccs)]
 		ptrFrom += i
@@ -55,7 +57,8 @@ func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Tr
 		ptrTo += i * 2
 		tx := getContractTransferTX(accFrom.from.Hex(), accTo.from.Hex(), contrAddr)
 		tx.From = accFrom.from
-		tx.Id = accFrom.from.Hash()
+		tx.Id = crypto.Keccak256Hash([]byte(fmt.Sprint(genesisId)))
+		genesisId++
 		sign, err := crypto.Sign(tx.Hash().Bytes(), accFrom.private)
 		if err != nil {
 			log.Fatal("sign err", err)

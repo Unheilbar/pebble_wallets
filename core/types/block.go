@@ -22,6 +22,10 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
+func (h *Header) NumberU64() uint64 {
+	return h.Number.Uint64()
+}
+
 type Block struct {
 	Header *Header
 

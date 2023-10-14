@@ -31,7 +31,7 @@ func (c *Chad) GenerateAccEmissionsTx(contrAddr common.Address) []*types.Transac
 	var ret []*types.Transaction
 
 	for _, acc := range c.accounts {
-		tx := getContractEmissionTX(acc.From.Hex(), contrAddr)
+		tx := getContractEmissionTX(acc.From.Hash().Bytes()[:32], contrAddr)
 		c.fakeBalances[acc.From.Hex()] += emissionVal
 		tx.From = acc.From
 		sign, err := crypto.Sign(tx.Hash().Bytes(), acc.Private)
@@ -59,7 +59,7 @@ func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Tr
 		ptrFrom += i
 		accTo := c.orderedAccs[ptrTo%len(c.orderedAccs)]
 		ptrTo += i * 2
-		tx := getContractTransferTX(accFrom.From.Hex(), accTo.From.Hex(), contrAddr)
+		tx := getContractTransferTX(accFrom.From.Hash().Bytes()[:32], accTo.From.Hex(), contrAddr)
 		tx.From = accFrom.From
 		tx.Id = crypto.Keccak256Hash([]byte(fmt.Sprint(genesisId)))
 		genesisId++
@@ -103,8 +103,10 @@ func (c *Chad) GetContractDeployTX(from common.Address, contrCode []byte) *types
 
 const emissionVal = 1000
 
-func getContractEmissionTX(wallet string, contrAddr common.Address) *types.Transaction {
-	input, err := packTX("emission", wallet, big.NewInt(emissionVal))
+func getContractEmissionTX(wallet []byte, contrAddr common.Address) *types.Transaction {
+	var arr [32]byte
+	copy(arr[:], wallet)
+	input, err := packTX("emission", arr, big.NewInt(emissionVal))
 	if err != nil {
 		log.Fatal("err generate emission input", err, input)
 	}
@@ -118,8 +120,12 @@ func getContractEmissionTX(wallet string, contrAddr common.Address) *types.Trans
 
 const transferVal = 1
 
-func getContractTransferTX(fromWallet string, toWallet string, contrAddr common.Address) *types.Transaction {
-	input, err := packTX("transfer", fromWallet, toWallet, big.NewInt(transferVal))
+func getContractTransferTX(fromWallet []byte, toWallet string, contrAddr common.Address) *types.Transaction {
+	var arrFrom [32]byte
+	copy(arrFrom[:], fromWallet)
+	var arrTo [32]byte
+	copy(arrTo[:], toWallet)
+	input, err := packTX("transfer", arrFrom, arrTo, big.NewInt(transferVal))
 	if err != nil {
 		log.Fatal("err generate transfer input", err, input)
 	}

@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
@@ -135,6 +136,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipt.TransactionIndex = uint(statedb.TxIndex())
 		revertReason := result.Revert()
 		if revertReason != nil {
+			fmt.Println(revertReason)
 			receipt.RevertReason = revertReason
 		}
 

@@ -18,12 +18,12 @@ contract Proxy {
         transferContract = Transfer(transferAddr);
    }
 
-    function emission(string memory walletId, uint256 amount) external {
+    function emission(bytes32 walletId, uint256 amount) external {
         stateContract.add(walletId, amount);
         stateContract.setSender(msg.sender, walletId);
     }
 
-    function transfer(string memory fromWalletId, string memory toWalletId, uint256 amount) external{
+    function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) external{
         transferContract.transfer(msg.sender, fromWalletId, toWalletId, amount);
     }
 }

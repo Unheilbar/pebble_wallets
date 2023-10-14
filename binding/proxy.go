@@ -31,8 +31,8 @@ var (
 
 // ProxyMetaData contains all meta data concerning the Proxy contract.
 var ProxyMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"walletId\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"emission\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"fromWalletId\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"toWalletId\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
-	Bin: "0x60808060405234610057577398acac3b9c77c934c12780a2852a959e674970a360018060a01b0319731aea632c29d2978a5c6336a3b8bfe9d737eb8fe38160015416176001555f5416175f5561031f908161005c8239f35b5f80fdfe60406080815260049081361015610014575f80fd5b5f91823560e01c80634e3042441461011d57639b80b05014610034575f80fd5b829134610119576003196060368201126101145767ffffffffffffffff928035848111610110576100689036908301610245565b93602435908111610110576100809036908301610245565b9360018060a01b0386541690813b1561010c57866100c6936100d582968851998a97889687956341b3856960e01b875233908701526080602487015260848601906102ab565b918483030160448501526102ab565b604435606483015203925af190811561010357506100f05750f35b6100f99061021d565b6101005780f35b80fd5b513d84823e3d90fd5b8680fd5b8580fd5b505050fd5b5050fd5b50919034610219578060031936011261021957823567ffffffffffffffff81116102155761014e9036908501610245565b6001546001600160a01b039081169491929190853b156101f35784835180976336555b8560e01b8252858583015281838161018c604482018b6102ab565b602435602483015203925af1801561020b576101f7575b8495506001541692833b156101f3576101e0938592838551809781958294633b8c713360e21b8452339084015288602484015260448301906102ab565b03925af190811561010357506100f05750f35b8480fd5b9390946102039061021d565b9284906101a3565b83513d87823e3d90fd5b8280fd5b5080fd5b67ffffffffffffffff811161023157604052565b634e487b7160e01b5f52604160045260245ffd5b81601f820112156102a75780359067ffffffffffffffff928383116102315760405193601f8401601f19908116603f011685019081118582101761023157604052828452602083830101116102a757815f926020809301838601378301015290565b5f80fd5b91908251928382525f5b8481106102d5575050825f602080949584010152601f8019910116010190565b6020818301810151848301820152016102b556fea2646970667358221220209eb2c923c17223a5a5d91067e88a014dbb2bfb04b207dee247490d23e3644364736f6c63430008150033",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"walletId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"emission\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"fromWalletId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"toWalletId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x60808060405234610057577398acac3b9c77c934c12780a2852a959e674970a360018060a01b0319731aea632c29d2978a5c6336a3b8bfe9d737eb8fe38160015416176001555f5416175f556101e3908161005c8239f35b5f80fdfe60806040818152600480361015610014575f80fd5b5f92833560e01c9081636ff6cdad146100c4575063ae9f75e314610036575f80fd5b8291346100c05760603660031901126100c05782546001600160a01b031691823b156100bb57839260848492845195869384926394bf8d6160e01b84523381850152356024840152602435604484015260443560648401525af19081156100b2575061009f5750f35b6100a890610185565b6100af5780f35b80fd5b513d84823e3d90fd5b505050fd5b5050fd5b84838534610181578060031936011261018157600154823592906001600160a01b03908116803b1561017d5786604481888094632ffd25e760e11b8352898884015260243560248401525af180156101735761015f575b8495506001541692833b1561015b576044859283855196879485936371bae41d60e01b8552339085015260248401525af19081156100b2575061009f5750f35b8480fd5b93909461016b90610185565b92849061011b565b83513d87823e3d90fd5b8580fd5b8280fd5b67ffffffffffffffff811161019957604052565b634e487b7160e01b5f52604160045260245ffdfea2646970667358221220df5d5e7a41a7d7c3be71b1c1090a18aa3feb4b80ab62d7bd619be0b150a3ebcf64736f6c63430008150033",
 }
 
 // ProxyABI is the input ABI used to generate the binding from.
@@ -202,44 +202,44 @@ func (_Proxy *ProxyTransactorRaw) Transact(opts *bind.TransactOpts, method strin
 	return _Proxy.Contract.contract.Transact(opts, method, params...)
 }
 
-// Emission is a paid mutator transaction binding the contract method 0x4e304244.
+// Emission is a paid mutator transaction binding the contract method 0x6ff6cdad.
 //
-// Solidity: function emission(string walletId, uint256 amount) returns()
-func (_Proxy *ProxyTransactor) Emission(opts *bind.TransactOpts, walletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function emission(bytes32 walletId, uint256 amount) returns()
+func (_Proxy *ProxyTransactor) Emission(opts *bind.TransactOpts, walletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Proxy.contract.Transact(opts, "emission", walletId, amount)
 }
 
-// Emission is a paid mutator transaction binding the contract method 0x4e304244.
+// Emission is a paid mutator transaction binding the contract method 0x6ff6cdad.
 //
-// Solidity: function emission(string walletId, uint256 amount) returns()
-func (_Proxy *ProxySession) Emission(walletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function emission(bytes32 walletId, uint256 amount) returns()
+func (_Proxy *ProxySession) Emission(walletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Proxy.Contract.Emission(&_Proxy.TransactOpts, walletId, amount)
 }
 
-// Emission is a paid mutator transaction binding the contract method 0x4e304244.
+// Emission is a paid mutator transaction binding the contract method 0x6ff6cdad.
 //
-// Solidity: function emission(string walletId, uint256 amount) returns()
-func (_Proxy *ProxyTransactorSession) Emission(walletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function emission(bytes32 walletId, uint256 amount) returns()
+func (_Proxy *ProxyTransactorSession) Emission(walletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Proxy.Contract.Emission(&_Proxy.TransactOpts, walletId, amount)
 }
 
-// Transfer is a paid mutator transaction binding the contract method 0x9b80b050.
+// Transfer is a paid mutator transaction binding the contract method 0xae9f75e3.
 //
-// Solidity: function transfer(string fromWalletId, string toWalletId, uint256 amount) returns()
-func (_Proxy *ProxyTransactor) Transfer(opts *bind.TransactOpts, fromWalletId string, toWalletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) returns()
+func (_Proxy *ProxyTransactor) Transfer(opts *bind.TransactOpts, fromWalletId [32]byte, toWalletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Proxy.contract.Transact(opts, "transfer", fromWalletId, toWalletId, amount)
 }
 
-// Transfer is a paid mutator transaction binding the contract method 0x9b80b050.
+// Transfer is a paid mutator transaction binding the contract method 0xae9f75e3.
 //
-// Solidity: function transfer(string fromWalletId, string toWalletId, uint256 amount) returns()
-func (_Proxy *ProxySession) Transfer(fromWalletId string, toWalletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) returns()
+func (_Proxy *ProxySession) Transfer(fromWalletId [32]byte, toWalletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Proxy.Contract.Transfer(&_Proxy.TransactOpts, fromWalletId, toWalletId, amount)
 }
 
-// Transfer is a paid mutator transaction binding the contract method 0x9b80b050.
+// Transfer is a paid mutator transaction binding the contract method 0xae9f75e3.
 //
-// Solidity: function transfer(string fromWalletId, string toWalletId, uint256 amount) returns()
-func (_Proxy *ProxyTransactorSession) Transfer(fromWalletId string, toWalletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) returns()
+func (_Proxy *ProxyTransactorSession) Transfer(fromWalletId [32]byte, toWalletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Proxy.Contract.Transfer(&_Proxy.TransactOpts, fromWalletId, toWalletId, amount)
 }

@@ -31,8 +31,8 @@ var (
 
 // EventsMetaData contains all meta data concerning the Events contract.
 var EventsMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"fromWallet\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"toWallet\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"TransferTokens\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"fromWalletId\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"toWalletId\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"emitTransfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
-	Bin: "0x60808060405234610016576101bd908161001b8239f35b5f80fdfe60806040526004361015610011575f80fd5b5f803560e01c63d2911ce814610025575f80fd5b346100cc5760603660031901126100cc5767ffffffffffffffff6004358181116100c8576100579036906004016100cf565b906024359081116100c8577fd95fbf7114e4c368c1b75c31ce4a9147b6cd34cb0e41c5a24b3a629c93f2479f916100ba6100986100ac9336906004016100cf565b604051938493606085526060850190610149565b908382036020850152610149565b60443560408301520390a180f35b8280fd5b80fd5b81601f820112156101315780359067ffffffffffffffff928383116101355760405193601f8401601f19908116603f0116850190811185821017610135576040528284526020838301011161013157815f926020809301838601378301015290565b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b91908251928382525f5b848110610173575050825f602080949584010152601f8019910116010190565b60208183018101518483018201520161015356fea2646970667358221220757019c9da575d4eb5048ce96a4fa5b475af6401a0828a5c87b922e8c98497c064736f6c63430008150033",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"fromWallet\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"toWallet\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"TransferTokens\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"fromWalletId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"toWalletId\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"emitTransfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x6080806040523460145760ab90816100198239f35b5f80fdfe60808060405260043610156011575f80fd5b5f90813560e01c63df8af475146025575f80fd5b34607157606036600319011260715760607f75de0f6c3cf1e47f6ef8de868a45c0e230fff8decbfa6182d8bc051df37d3c1f91600435815260243560208201526044356040820152a180f35b5080fdfea26469706673582212204d10d3fa688de2803cc0965b890b8877fdc17f0fbedc5c92c7c03d01fcc524b664736f6c63430008150033",
 }
 
 // EventsABI is the input ABI used to generate the binding from.
@@ -202,24 +202,24 @@ func (_Events *EventsTransactorRaw) Transact(opts *bind.TransactOpts, method str
 	return _Events.Contract.contract.Transact(opts, method, params...)
 }
 
-// EmitTransfer is a paid mutator transaction binding the contract method 0xd2911ce8.
+// EmitTransfer is a paid mutator transaction binding the contract method 0xdf8af475.
 //
-// Solidity: function emitTransfer(string fromWalletId, string toWalletId, uint256 amount) returns()
-func (_Events *EventsTransactor) EmitTransfer(opts *bind.TransactOpts, fromWalletId string, toWalletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function emitTransfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) returns()
+func (_Events *EventsTransactor) EmitTransfer(opts *bind.TransactOpts, fromWalletId [32]byte, toWalletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Events.contract.Transact(opts, "emitTransfer", fromWalletId, toWalletId, amount)
 }
 
-// EmitTransfer is a paid mutator transaction binding the contract method 0xd2911ce8.
+// EmitTransfer is a paid mutator transaction binding the contract method 0xdf8af475.
 //
-// Solidity: function emitTransfer(string fromWalletId, string toWalletId, uint256 amount) returns()
-func (_Events *EventsSession) EmitTransfer(fromWalletId string, toWalletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function emitTransfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) returns()
+func (_Events *EventsSession) EmitTransfer(fromWalletId [32]byte, toWalletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Events.Contract.EmitTransfer(&_Events.TransactOpts, fromWalletId, toWalletId, amount)
 }
 
-// EmitTransfer is a paid mutator transaction binding the contract method 0xd2911ce8.
+// EmitTransfer is a paid mutator transaction binding the contract method 0xdf8af475.
 //
-// Solidity: function emitTransfer(string fromWalletId, string toWalletId, uint256 amount) returns()
-func (_Events *EventsTransactorSession) EmitTransfer(fromWalletId string, toWalletId string, amount *big.Int) (*types.Transaction, error) {
+// Solidity: function emitTransfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) returns()
+func (_Events *EventsTransactorSession) EmitTransfer(fromWalletId [32]byte, toWalletId [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _Events.Contract.EmitTransfer(&_Events.TransactOpts, fromWalletId, toWalletId, amount)
 }
 
@@ -292,15 +292,15 @@ func (it *EventsTransferTokensIterator) Close() error {
 
 // EventsTransferTokens represents a TransferTokens event raised by the Events contract.
 type EventsTransferTokens struct {
-	FromWallet string
-	ToWallet   string
+	FromWallet [32]byte
+	ToWallet   [32]byte
 	Amount     *big.Int
 	Raw        types.Log // Blockchain specific contextual infos
 }
 
-// FilterTransferTokens is a free log retrieval operation binding the contract event 0xd95fbf7114e4c368c1b75c31ce4a9147b6cd34cb0e41c5a24b3a629c93f2479f.
+// FilterTransferTokens is a free log retrieval operation binding the contract event 0x75de0f6c3cf1e47f6ef8de868a45c0e230fff8decbfa6182d8bc051df37d3c1f.
 //
-// Solidity: event TransferTokens(string fromWallet, string toWallet, uint256 amount)
+// Solidity: event TransferTokens(bytes32 fromWallet, bytes32 toWallet, uint256 amount)
 func (_Events *EventsFilterer) FilterTransferTokens(opts *bind.FilterOpts) (*EventsTransferTokensIterator, error) {
 
 	logs, sub, err := _Events.contract.FilterLogs(opts, "TransferTokens")
@@ -310,9 +310,9 @@ func (_Events *EventsFilterer) FilterTransferTokens(opts *bind.FilterOpts) (*Eve
 	return &EventsTransferTokensIterator{contract: _Events.contract, event: "TransferTokens", logs: logs, sub: sub}, nil
 }
 
-// WatchTransferTokens is a free log subscription operation binding the contract event 0xd95fbf7114e4c368c1b75c31ce4a9147b6cd34cb0e41c5a24b3a629c93f2479f.
+// WatchTransferTokens is a free log subscription operation binding the contract event 0x75de0f6c3cf1e47f6ef8de868a45c0e230fff8decbfa6182d8bc051df37d3c1f.
 //
-// Solidity: event TransferTokens(string fromWallet, string toWallet, uint256 amount)
+// Solidity: event TransferTokens(bytes32 fromWallet, bytes32 toWallet, uint256 amount)
 func (_Events *EventsFilterer) WatchTransferTokens(opts *bind.WatchOpts, sink chan<- *EventsTransferTokens) (event.Subscription, error) {
 
 	logs, sub, err := _Events.contract.WatchLogs(opts, "TransferTokens")
@@ -347,9 +347,9 @@ func (_Events *EventsFilterer) WatchTransferTokens(opts *bind.WatchOpts, sink ch
 	}), nil
 }
 
-// ParseTransferTokens is a log parse operation binding the contract event 0xd95fbf7114e4c368c1b75c31ce4a9147b6cd34cb0e41c5a24b3a629c93f2479f.
+// ParseTransferTokens is a log parse operation binding the contract event 0x75de0f6c3cf1e47f6ef8de868a45c0e230fff8decbfa6182d8bc051df37d3c1f.
 //
-// Solidity: event TransferTokens(string fromWallet, string toWallet, uint256 amount)
+// Solidity: event TransferTokens(bytes32 fromWallet, bytes32 toWallet, uint256 amount)
 func (_Events *EventsFilterer) ParseTransferTokens(log types.Log) (*EventsTransferTokens, error) {
 	event := new(EventsTransferTokens)
 	if err := _Events.contract.UnpackLog(event, "TransferTokens", log); err != nil {

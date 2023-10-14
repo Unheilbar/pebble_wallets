@@ -2,11 +2,13 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -114,4 +116,39 @@ func (obj *Log) EncodeRLP(_w io.Writer) error {
 	w.WriteBytes(obj.Data)
 	w.ListEnd(_tmp0)
 	return w.Flush()
+}
+
+// DeriveFields fills the receipts with their computed fields based on consensus
+// data and contextual infos like containing block and transactions.
+func (rs Receipts) DeriveFields(hash common.Hash, number uint64, time uint64, txs []*Transaction) error {
+	logIndex := uint(0)
+	if len(txs) != len(rs) {
+		return errors.New("transaction and receipt count mismatch")
+	}
+	for i := 0; i < len(rs); i++ {
+		rs[i].TxHash = txs[i].Hash()
+
+		// block location fields
+		rs[i].BlockHash = hash
+		rs[i].BlockNumber = new(big.Int).SetUint64(number)
+		rs[i].TransactionIndex = uint(i)
+
+		// The contract address can be derived from the transaction itself
+		if (txs[i].To == common.Address{}) {
+			rs[i].ContractAddress = crypto.CreateAddress(txs[i].From, 0) // PEBBLETODO Here should be transactionID instead of 0. Only after changing create address logic in EVM
+		} else {
+			rs[i].ContractAddress = common.Address{}
+		}
+
+		// The derived log fields can simply be set from the block and transaction
+		for j := 0; j < len(rs[i].Logs); j++ {
+			rs[i].Logs[j].BlockNumber = number
+			rs[i].Logs[j].BlockHash = hash
+			rs[i].Logs[j].TxHash = rs[i].TxHash
+			rs[i].Logs[j].TxIndex = uint(i)
+			rs[i].Logs[j].Index = logIndex
+			logIndex++
+		}
+	}
+	return nil
 }

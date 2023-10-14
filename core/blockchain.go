@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/binding"
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -45,15 +45,13 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	var blockID int64 = 1
 	deployStartTime := time.Now()
 
-	block := types.Block{
-		Header: &types.Header{
-			Number: big.NewInt(blockID),
-		},
-		Transactions: []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))},
-	}
+	block := types.NewBlockWithHeader(&types.Header{
+		Number: big.NewInt(blockID),
+	})
+	block.Transactions = []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))}
 	statedb, err := state.New(common.Hash{}, bc.stateCache, nil)
 	stProcessor := NewStateProcessor(getDefaultCfg())
-	receipts := stProcessor.Process(block, statedb)
+	receipts := stProcessor.Process(*block, statedb)
 	receipt := receipts[0]
 	contrAddr := receipt.ContractAddress
 
@@ -61,8 +59,9 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	if err != nil {
 		log.Fatal("err commit sb deploy", err)
 	}
-	block.Header.Root = newRoot
-	bc.currentBlock.Store(&block)
+
+	block.Header().Root = newRoot
+	bc.currentBlock.Store(block)
 	err = bc.stateCache.TrieDB().Commit(newRoot, false)
 	if err != nil {
 		log.Fatal("err commit tdb deploy", err)

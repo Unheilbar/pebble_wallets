@@ -27,14 +27,14 @@ func (h *Header) NumberU64() uint64 {
 }
 
 type Block struct {
-	Header *Header
+	header *Header
 
 	Transactions []*Transaction
 	Receipts     []*Receipt
 }
 
 func (block *Block) Hash() common.Hash {
-	return block.Header.Hash()
+	return block.header.Hash()
 }
 
 var hasherPool = sync.Pool{
@@ -50,11 +50,52 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 	header.ReceiptHash = DeriveSha(Receipts(receipts), trie.NewStackTrie(nil))
 	header.TxHash = DeriveSha(Transactions(txs), trie.NewStackTrie(nil))
 
-	b.Header = header
+	b.header = header
 	return b
 }
 
-func (b *Block) Number() *big.Int  { return new(big.Int).Set(b.Header.Number) }
+func NewBlockWithHeader(header *Header) *Block {
+	return &Block{header: CopyHeader(header)}
+}
+
+func (b *Block) Number() *big.Int  { return new(big.Int).Set(b.header.Number) }
 func (b *Block) NumberU64() uint64 { return b.Number().Uint64() }
-func (b *Block) Root() common.Hash { return b.Header.Root }
-func (b *Block) Time() uint64      { return b.Header.Time }
+func (b *Block) Root() common.Hash { return b.header.Root }
+func (b *Block) Time() uint64      { return b.header.Time }
+
+// Header returns the block header (as a copy).
+func (b *Block) Header() *Header {
+	return CopyHeader(b.header)
+}
+
+// CopyHeader creates a deep copy of a block header.
+func CopyHeader(h *Header) *Header {
+	cpy := *h
+	if cpy.Number = new(big.Int); h.Number != nil {
+		cpy.Number.Set(h.Number)
+	}
+	return &cpy
+}
+
+// Body is a simple (mutable, non-safe) data container for storing and moving
+// a block's data contents (transactions and uncles) together.
+type Body struct {
+	Transactions []*Transaction
+}
+
+// Body returns the non-header content of the block.
+// Note the returned data is not an independent copy.
+func (b *Block) Body() *Body {
+	return &Body{b.Transactions}
+}
+
+// WithBody returns a copy of the block with the given transaction and uncle contents.
+func (b *Block) WithBody(transactions []*Transaction) *Block {
+	block := &Block{
+		header:       b.header,
+		Transactions: make([]*Transaction, len(transactions)),
+	}
+	copy(block.Transactions, transactions)
+
+	return block
+}

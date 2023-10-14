@@ -102,10 +102,9 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 	if err != nil {
 		return fmt.Errorf("error committing public state: %v", err)
 	}
-	fmt.Println("state commited ", blockNumber, root)
+
 	state, err = bc.StateAt(root)
 	if err != nil {
-		fmt.Println("no state after commit")
 		panic(err)
 	}
 	check = state.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
@@ -144,8 +143,6 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 		return err
 	}
 
-	// Persist memory database for root
-	fmt.Println("commit root ", root)
 	return bc.stateCache.TrieDB().Commit(root, false)
 }
 

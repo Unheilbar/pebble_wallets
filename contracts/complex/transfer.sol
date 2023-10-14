@@ -18,10 +18,10 @@ contract Transfer {
         monthAmount = 10000000;
     }
 
-
     function transfer(address origin, string memory fromWalletId, string memory toWalletId, uint256 amount) public {
         string memory walletFromOrigin = stateContract.getSender(origin);
         require(keccak256(bytes(walletFromOrigin)) == keccak256(bytes(fromWalletId)), "origin doesnt match wallet"); //check correct sender
+        require(amount!=0, "invalid amount");
         require(stateContract.balance(fromWalletId) > amount , "not enough balance"); // balance availability
         require(stateContract.monthAmount(fromWalletId) + amount < monthAmount, "limit exceeded"); // check month amount
         require(stateContract.getWalletStatus(fromWalletId)!=2, "from wallet status failed");
@@ -30,6 +30,7 @@ contract Transfer {
         uint8 fromWalletType = stateContract.getWalletType(fromWalletId);
         uint8 toWalletType = stateContract.getWalletType(toWalletId);
         uint8[] memory canTransferTo = stateContract.getAvailableTransferTypes(fromWalletType);
+        
         bool ok = false;
         for (uint i=0;i<canTransferTo.length;i++){
             if (canTransferTo[i] == toWalletType) {

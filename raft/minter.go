@@ -45,7 +45,6 @@ func newMinter(eth *RaftService, blockTime time.Duration) *minter {
 		txPreChan: make(chan core.NewTxsEvent, 4096),
 	}
 
-	log.Print("minter created", minter.chain.CurrentBlock().Number())
 	minter.speculativeChain.clear(minter.chain.CurrentBlock())
 	// go minter.eventLoop() // we don't catch events
 	go minter.mintingLoop()
@@ -98,7 +97,7 @@ func (minter *minter) createWork() *work {
 	if err != nil {
 		panic(fmt.Sprint("failed to get parent state: ", err))
 	}
-	fmt.Println("initiated public state for work with root ", parent.Root(), parent.Number())
+
 	return &work{
 		publicState: publicState,
 		header:      header,
@@ -119,14 +118,11 @@ func (minter *minter) mintNewBlock() {
 		log.Print("Not minting a new block since there are no pending transactions")
 		return
 	}
-	apply := work.publicState.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
-	if apply == nil {
-		panic("apply failed")
-	}
+
 	header := work.header
 
 	header.Root = work.publicState.IntermediateRoot(true)
-	fmt.Println("new header root :  ", header.Root)
+
 	// update block hash since it is now available, but was not when the
 	// receipt/log of individual transactions were created:
 	headerHash := header.Hash()
@@ -159,17 +155,8 @@ func (minter *minter) mintNewBlock() {
 		log.Fatal("cant insert chain", err)
 	}
 
-	state, err := minter.eth.blockchain.StateAt(block.Root())
-	if err != nil {
-		log.Fatal("insert chain failed ", err)
-	}
-	code := state.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
-	if code == nil {
-		log.Fatal("something went wrong when deployed contract")
-	}
-
 	elapsed = time.Since(time.Unix(0, int64(header.Time)))
-	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(committedTxes), "tx/s ", getSpeed(len(committedTxes), elapsed))
+	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(committedTxes), getSpeed(len(committedTxes), elapsed), "tx/s ")
 }
 
 func getSpeed(txes int, interval time.Duration) float64 {

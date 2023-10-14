@@ -14,13 +14,7 @@ type RaftService struct {
 	blockchain *core.Blockchain
 	chainDb    ethdb.Database // Block chain database
 	txPool     *txpool.TxPool
-	// accountManager *accounts.Manager
-	// downloader     *downloader.Downloader
 
-	// raftProtocolManager *ProtocolManager
-	// startPeers []*enode.Node
-
-	// we need an event mux to instantiate the blockchain
 	eventMux *event.TypeMux
 	minter   *minter
 	// nodeKey          *ecdsa.PrivateKey

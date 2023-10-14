@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"math/big"
 
@@ -94,11 +93,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	)
 	if contractCreation {
 		ret, _, _, vmerr = st.evm.Create(sender, msg.Input, math.MaxUint64, value)
-		if vmerr != nil {
-			log.Fatal(ret, vmerr)
-		}
+
 		contractAddr := crypto.CreateAddress(sender.Address(), st.evm.StateDB.GetNonce(sender.Address())-1) // hack because we form contract address not with nonce
-		fmt.Println("contract creation ", contractAddr.Hex(), "sender", sender.Address().Hex())
 		check := st.evm.StateDB.GetCode(contractAddr)
 		if check == nil {
 			panic("evm create code err")
@@ -107,9 +103,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Increment the nonce for the next transaction
 		// st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1) add unique tx ID to states
 		ret, _, vmerr = st.evm.Call(sender, st.to(), msg.Input, remainGas, value)
-		if vmerr != nil {
-			fmt.Println(ret, vmerr)
-		}
 	}
 
 	return &ExecutionResult{
@@ -142,6 +135,6 @@ func (st *StateTransition) preCheck() error {
 	// 	return fmt.Errorf("%w: address %v, codehash: %s", ErrSenderNoEOA,
 	// 		msg.From.Hex(), codeHash)
 	// }
-	//TODO check tx unique?
+	// TODO check tx unique?
 	return nil
 }

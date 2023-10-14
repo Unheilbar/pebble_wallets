@@ -2,13 +2,11 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"math"
 	"math/big"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
@@ -137,7 +135,6 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipt.TransactionIndex = uint(statedb.TxIndex())
 		revertReason := result.Revert()
 		if revertReason != nil {
-			fmt.Println(abi.UnpackRevert(revertReason))
 			receipt.RevertReason = revertReason
 		}
 

@@ -15,8 +15,8 @@ import (
 )
 
 type chadAcc struct {
-	from    common.Address
-	private *ecdsa.PrivateKey
+	From    common.Address
+	Private *ecdsa.PrivateKey
 }
 
 type Chad struct {
@@ -31,10 +31,10 @@ func (c *Chad) GenerateAccEmissionsTx(contrAddr common.Address) []*types.Transac
 	var ret []*types.Transaction
 
 	for _, acc := range c.accounts {
-		tx := getContractEmissionTX(acc.from.Hex(), contrAddr)
-		c.fakeBalances[acc.from.Hex()] += emissionVal
-		tx.From = acc.from
-		sign, err := crypto.Sign(tx.Hash().Bytes(), acc.private)
+		tx := getContractEmissionTX(acc.From.Hex(), contrAddr)
+		c.fakeBalances[acc.From.Hex()] += emissionVal
+		tx.From = acc.From
+		sign, err := crypto.Sign(tx.Hash().Bytes(), acc.Private)
 		if err != nil {
 			log.Fatal("sign err", err)
 		}
@@ -43,6 +43,10 @@ func (c *Chad) GenerateAccEmissionsTx(contrAddr common.Address) []*types.Transac
 		ret = append(ret, tx)
 	}
 	return ret
+}
+
+func (c *Chad) GetTestAccByID(id uint) chadAcc {
+	return c.orderedAccs[id]
 }
 
 func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Transaction {
@@ -55,18 +59,18 @@ func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Tr
 		ptrFrom += i
 		accTo := c.orderedAccs[ptrTo%len(c.orderedAccs)]
 		ptrTo += i * 2
-		tx := getContractTransferTX(accFrom.from.Hex(), accTo.from.Hex(), contrAddr)
-		tx.From = accFrom.from
+		tx := getContractTransferTX(accFrom.From.Hex(), accTo.From.Hex(), contrAddr)
+		tx.From = accFrom.From
 		tx.Id = crypto.Keccak256Hash([]byte(fmt.Sprint(genesisId)))
 		genesisId++
-		sign, err := crypto.Sign(tx.Hash().Bytes(), accFrom.private)
+		sign, err := crypto.Sign(tx.Hash().Bytes(), accFrom.Private)
 		if err != nil {
 			log.Fatal("sign err", err)
 		}
 		tx.Signature = sign
 		ret = append(ret, tx)
-		c.fakeBalances[accFrom.from.Hex()] -= transferVal
-		c.fakeBalances[accTo.from.Hex()] += transferVal
+		c.fakeBalances[accFrom.From.Hex()] -= transferVal
+		c.fakeBalances[accTo.From.Hex()] += transferVal
 	}
 
 	return ret
@@ -83,15 +87,15 @@ func (c *Chad) GenerateAccs(size int) {
 		}
 
 		from := common.BytesToAddress(crypto.Keccak256(crypto.FromECDSAPub(&privateKey.PublicKey)[1:])[12:])
-		c.accounts[from] = chadAcc{from: from, private: privateKey}
+		c.accounts[from] = chadAcc{From: from, Private: privateKey}
 		c.orderedAccs = append(c.orderedAccs, c.accounts[from])
 		prev = string(crypto.Keccak256Hash([]byte(prev)).Hex()[2:])
 	}
 }
 
-func (c *Chad) GetContractDeployTX(senderId int, contrCode []byte) *types.Transaction {
+func (c *Chad) GetContractDeployTX(from common.Address, contrCode []byte) *types.Transaction {
 	return &types.Transaction{
-		From:  c.orderedAccs[senderId].from,
+		From:  from,
 		To:    common.Address{},
 		Input: contrCode,
 	}

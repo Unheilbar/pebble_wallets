@@ -15,6 +15,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/raft"
 	"github.com/Unheilbar/pebbke_wallets/tests/chad"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var blockThrottle = time.Millisecond * 50
@@ -51,28 +52,30 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
 
 var minterStressWalletsAmount = 1000
 var minterStressTransfersAmount = 10000
-var Proxy = common.HexToAddress("0x5dBC355B93DD7A0C0D759Fd6a7859d2610219221")
-var Transfer = common.HexToAddress("0x6C02e060D0E1CAD7c039A9aE3aBc29A40b3DFF1f")
-var State = common.HexToAddress("0xE11f8d55a93bF877a091a3C54C071AAc5cC0b01D")
-var Event = common.HexToAddress("0x6027946B05e7ab6Ef245093622AB18eaD5453877")
 
 func runStress(api *eth.EthAPIBackend) {
 	var tester chad.Chad
 	tester.GenerateAccs(minterStressWalletsAmount)
-	api.SendTx(context.Background(), tester.GetContractDeployTX(2, common.Hex2Bytes(binding.StateMetaData.Bin[2:])))
+	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(3).From, common.Hex2Bytes(binding.StateMetaData.Bin[2:])))
 	time.Sleep(time.Second * 2) // wait to apply
-	api.SendTx(context.Background(), tester.GetContractDeployTX(3, common.Hex2Bytes(binding.EventsMetaData.Bin[2:])))
+	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(4).From, common.Hex2Bytes(binding.EventsMetaData.Bin[2:])))
 	time.Sleep(time.Second * 2) // wait to apply
-	api.SendTx(context.Background(), tester.GetContractDeployTX(4, common.Hex2Bytes(binding.TransferMetaData.Bin[2:])))
+	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(5).From, common.Hex2Bytes(binding.TransferMetaData.Bin[2:])))
 	time.Sleep(time.Second * 2) // wait to apply
-	api.SendTx(context.Background(), tester.GetContractDeployTX(5, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:])))
-
+	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(6).From, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:])))
 	time.Sleep(time.Second * 2) // wait for tx to apply
+	var State = crypto.CreateAddress(tester.GetTestAccByID(3).From, 0)
+	var Transfer = crypto.CreateAddress(tester.GetTestAccByID(5).From, 0)
+	var Event = crypto.CreateAddress(tester.GetTestAccByID(4).From, 0)
+	var Proxy = crypto.CreateAddress(tester.GetTestAccByID(6).From, 0)
+
+	fmt.Printf("deployed addresses state %s transfer %s event %s proxy %s", State.Hex(), Transfer.Hex(), Event.Hex(), Proxy.Hex())
+
+	// deployed addresses state 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3 transfer 0x98aCaC3B9c77c934C12780a2852A959E674970A3 event 0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467 proxy 0x4BD6080baB7FB15D17bb211e333A87B7edE02D91
 	emissions := tester.GenerateAccEmissionsTx(Proxy)
 	api.SendTxs(context.Background(), emissions)
-
+	time.Sleep(time.Second * 10) // wait emissions to process
 	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)
 	fmt.Println(len(transfers))
 	api.SendTxs(context.Background(), transfers)
-
 }

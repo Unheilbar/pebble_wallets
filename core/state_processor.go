@@ -112,11 +112,11 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 			log.Println("tx failed, skipped", err)
 			continue
 		}
+		statedb.Finalise(true)
 		txCount++
 		appliedTxs = append(appliedTxs, tx)
 		receipt := &types.Receipt{}
 		if result.Failed() {
-			fmt.Println("failed")
 			receipt.Status = types.ReceiptStatusFailed
 		} else {
 			receipt.Status = types.ReceiptStatusSuccessful
@@ -126,9 +126,9 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 
 		created := tx.To == common.Address{}
 		if created {
-			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, 1) //TODO think of something
+			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, statedb.GetNonce(tx.From)-1) //TODO think of something //nonce has been increased
 			receipt.ContractAddress = contractAddress
-			log.Println("successed deploy", contractAddress)
+			log.Println("successed deploy", contractAddress, "sender ", tx.From.Hex(), "nonce", statedb.GetNonce(tx.From)-1)
 		}
 
 		receipt.Logs = getLogs(tx.Hash(), header.Number.Uint64(), header.Hash(), statedb)
@@ -149,7 +149,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 
 func getLogs(txHash common.Hash, blockNumber uint64, blockHash common.Hash, statedb *state.StateDB) []*types.Log {
 	logs := statedb.GetLogs(txHash, blockNumber, blockHash)
-	ret := make([]*types.Log, len(logs))
+	ret := make([]*types.Log, 0)
 	for _, log := range logs {
 		ret = append(ret, &types.Log{
 			Data:        log.Data,

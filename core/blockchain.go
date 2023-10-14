@@ -67,7 +67,14 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	if err != nil {
 		log.Fatal("err commit tdb deploy", err)
 	}
-
+	sb, err := bc.StateAt(newRoot)
+	if err != nil {
+		panic(err)
+	}
+	code := sb.GetCode(contrAddr)
+	if code == nil {
+		panic("err create blockchain")
+	}
 	log.Println("test storage addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
 	return bc
 }
@@ -87,10 +94,24 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	if _, err := state.Commit(blockNumber, true); err != nil {
+	check := state.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
+	if check == nil {
+		panic("precheck failed")
+	}
+	root, err := state.Commit(blockNumber, true)
+	if err != nil {
 		return fmt.Errorf("error committing public state: %v", err)
 	}
-
+	fmt.Println("state commited ", blockNumber, root)
+	state, err = bc.StateAt(root)
+	if err != nil {
+		fmt.Println("no state after commit")
+		panic(err)
+	}
+	check = state.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
+	if check == nil {
+		panic("check failed")
+	}
 	return nil
 }
 
@@ -123,6 +144,8 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 		return err
 	}
 
+	// Persist memory database for root
+	fmt.Println("commit root ", root)
 	return bc.stateCache.TrieDB().Commit(root, false)
 }
 

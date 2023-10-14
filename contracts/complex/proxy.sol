@@ -7,17 +7,15 @@ import "./transfer.sol";
 
 
 contract Proxy {
-    address constant private stateAddr = 0xE11f8d55a93bF877a091a3C54C071AAc5cC0b01D;
-    address constant private transferAddr = 0x6C02e060D0E1CAD7c039A9aE3aBc29A40b3DFF1f;
-
-
+    address constant private stateAddr = 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3;
+    address constant private transferAddr = 0x98aCaC3B9c77c934C12780a2852A959E674970A3;
 
     Transfer private transferContract;
     State private stateContract;
    
    constructor (){
         stateContract = State(stateAddr);
-        transferContract = Transfer(stateAddr);
+        transferContract = Transfer(transferAddr);
    }
 
     function emission(string memory walletId, uint256 amount) external {
@@ -26,7 +24,6 @@ contract Proxy {
     }
 
     function transfer(string memory fromWalletId, string memory toWalletId, uint256 amount) external{
-        revert("poshel nahui");
         transferContract.transfer(msg.sender, fromWalletId, toWalletId, amount);
     }
 }

@@ -179,10 +179,10 @@ func (bc *Blockchain) CurrentBlock() *types.Block {
 	return bc.currentBlock.Load()
 }
 
+// only for stess minter tests PEBBLE REMOVE LATER
 func getContractDeployTX(contrCode []byte) *types.Transaction {
-	return &types.Transaction{
-		From:  common.Address{},
-		To:    common.Address{},
-		Input: contrCode,
-	}
+	return types.NewTx(types.TxData{
+		From: common.Address{},
+		Data: contrCode,
+	})
 }

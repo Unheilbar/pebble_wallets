@@ -47,10 +47,10 @@ func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*t
 }
 
 func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, evm *vm.EVM) (*types.Receipt, error) {
-	evm.Reset(newTxContext(tx.From), statedb)
+	evm.Reset(newTxContext(tx.From()), statedb)
 	var (
-		sender           = vm.AccountRef(tx.From)
-		contractCreation = tx.To == common.Address{}
+		sender           = vm.AccountRef(tx.From())
+		contractCreation = tx.To() == nil
 		contrAddr        common.Address
 		vmerr            error
 	)
@@ -59,10 +59,10 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 	preCheck(tx)
 
 	if contractCreation {
-		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, math.MaxUint64, new(big.Int))
+		_, contrAddr, _, vmerr = evm.Create(sender, tx.Data(), math.MaxUint64, new(big.Int))
 	} else {
 		//TODO save unique tx hash?
-		_, _, vmerr = evm.Call(sender, tx.To, tx.Input, math.MaxUint64, new(big.Int))
+		_, _, vmerr = evm.Call(sender, common.Address{}, tx.Data(), math.MaxUint64, new(big.Int))
 	}
 
 	statedb.Finalise(true)
@@ -100,7 +100,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 	blockNumber := header.Number
 	txCount := 0
 	for _, tx := range txs {
-		evm.Reset(newTxContext(tx.From), statedb)
+		evm.Reset(newTxContext(tx.From()), statedb)
 		snap := statedb.Snapshot()
 		statedb.SetTxContext(tx.Hash(), txCount)
 		result, err := ApplyMessage(evm, tx)
@@ -121,11 +121,11 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 
 		receipt.TxHash = tx.Hash()
 
-		created := tx.To == common.Address{}
+		created := tx.To() == nil
 		if created {
-			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, statedb.GetNonce(tx.From)-1) //TODO think of something //nonce has been increased
+			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, statedb.GetNonce(tx.From())-1) //TODO think of something //nonce has been increased
 			receipt.ContractAddress = contractAddress
-			log.Println("successed deploy", contractAddress, "sender ", tx.From.Hex(), "nonce", statedb.GetNonce(tx.From)-1)
+			log.Println("successed deploy", contractAddress, "sender ", tx.From().Hex(), "nonce", statedb.GetNonce(tx.From())-1)
 		}
 
 		receipt.Logs = getLogs(tx.Hash(), header.Number.Uint64(), header.Hash(), statedb)
@@ -170,13 +170,13 @@ func newTxContext(from common.Address) vm.TxContext {
 }
 
 func preCheck(tx *types.Transaction) (bool, error) {
-	sigPublicKey, err := crypto.Ecrecover(tx.Hash().Bytes(), tx.Signature)
+	sigPublicKey, err := crypto.Ecrecover(tx.Hash().Bytes(), tx.Signature())
 	if err != nil {
 		return false, err
 	}
 	var addr common.Address
 	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
-	return bytes.Equal(addr.Bytes(), tx.From.Bytes()), nil
+	return bytes.Equal(addr.Bytes(), tx.From().Bytes()), nil
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the

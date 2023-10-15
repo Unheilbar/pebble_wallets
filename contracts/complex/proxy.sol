@@ -18,9 +18,9 @@ contract Proxy {
         transferContract = Transfer(transferAddr);
    }
 
-    function emission(bytes32 walletId, uint256 amount) external {
+    function emission(address senderId, bytes32 walletId, uint256 amount) external {
         stateContract.add(walletId, amount);
-        stateContract.setSender(msg.sender, walletId);
+        stateContract.setSender(senderId, walletId);
     }
 
     function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) external{

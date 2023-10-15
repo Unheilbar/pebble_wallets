@@ -24,7 +24,7 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	"Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"

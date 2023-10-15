@@ -50,8 +50,8 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
 	log.Print("raft service registered")
 }
 
-var minterStressWalletsAmount = 1000
-var minterStressTransfersAmount = 10000
+var minterStressWalletsAmount = 10
+var minterStressTransfersAmount = 10
 
 func runStress(api *eth.EthAPIBackend) {
 	var tester chad.Chad
@@ -74,7 +74,7 @@ func runStress(api *eth.EthAPIBackend) {
 	// deployed addresses state 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3 transfer 0x98aCaC3B9c77c934C12780a2852A959E674970A3 event 0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467 proxy 0x4BD6080baB7FB15D17bb211e333A87B7edE02D91
 	emissions := tester.GenerateAccEmissionsTx(Proxy)
 	api.SendTxs(context.Background(), emissions)
-	time.Sleep(time.Second * 10) // wait emissions to process
+	time.Sleep(time.Second * 3) // wait emissions to process
 	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)
 	fmt.Println(len(transfers))
 	api.SendTxs(context.Background(), transfers)

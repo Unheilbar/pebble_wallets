@@ -32,9 +32,7 @@ func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*t
 		blockNumber = block.Number()
 	)
 
-	evm := vm.NewEVM(vm)
-	// evm := runtime.NewEnv(p.cfg) //PEBBLE don't call it here
-	evm.SetBlockContext(newBlockContext(p.cfg, blockNumber))
+	evm := vm.NewEVM(NewEVMBlockContext(block.Header()), vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 
 	for i, tx := range block.Transactions {
 		statedb.SetTxContext(tx.Hash(), i)
@@ -61,10 +59,10 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 	preCheck(tx)
 
 	if contractCreation {
-		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, p.cfg.GasLimit, new(big.Int))
+		_, contrAddr, _, vmerr = evm.Create(sender, tx.Input, math.MaxUint64, new(big.Int))
 	} else {
 		//TODO save unique tx hash?
-		_, _, vmerr = evm.Call(sender, tx.To, tx.Input, p.cfg.GasLimit, new(big.Int))
+		_, _, vmerr = evm.Call(sender, tx.To, tx.Input, math.MaxUint64, new(big.Int))
 	}
 
 	statedb.Finalise(true)
@@ -93,10 +91,9 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		return nil, nil, nil
 	}
 
-	evm := vm.NewEVM()
-	// evm := runtime.NewEnv(cfg) // PEBBLE don't call it here
 	blockCtx := NewEVMBlockContext(header)
-	evm.SetBlockContext(blockCtx)
+	// PEBBLE we use cancun by default
+	evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 	var receipts []*types.Receipt
 	var appliedTxs []*types.Transaction
 	blockHash := header.Hash()
@@ -109,7 +106,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		result, err := ApplyMessage(evm, tx)
 		if err != nil {
 			statedb.RevertToSnapshot(snap)
-			log.Println("tx failed, skipped", err)
+			log.Println("exec reverted", err)
 			continue
 		}
 		statedb.Finalise(true)
@@ -196,7 +193,6 @@ type ChainContext interface {
 func NewEVMBlockContext(header *types.Header) vm.BlockContext {
 	var (
 		beneficiary common.Address
-		baseFee     *big.Int
 		random      *common.Hash
 	)
 
@@ -209,9 +205,6 @@ func NewEVMBlockContext(header *types.Header) vm.BlockContext {
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        header.Time,
-		Difficulty:  new(big.Int),
-		BaseFee:     baseFee,
-		GasLimit:    math.MaxUint64,
 		Random:      random,
 	}
 }

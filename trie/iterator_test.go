@@ -22,7 +22,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie/trienode"

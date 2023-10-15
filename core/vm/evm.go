@@ -121,6 +121,7 @@ type EVM struct {
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
+// PEBBLE chain config contains rules, so far use cancun (the last one) by default, later can be changed
 func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig *params.ChainConfig) *EVM {
 	evm := &EVM{
 		Context:     blockCtx,

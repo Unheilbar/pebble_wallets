@@ -17,7 +17,7 @@
 package trie
 
 import (
-	"Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 
 	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/ethdb"

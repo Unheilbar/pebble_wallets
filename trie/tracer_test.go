@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
+
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/trie/trienode"
 )
 
 var (

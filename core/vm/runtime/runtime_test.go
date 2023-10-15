@@ -218,10 +218,6 @@ func fakeHeader(n uint64, parentHash common.Hash) *types.Header {
 		Number:     big.NewInt(int64(n)),
 		ParentHash: parentHash,
 		Time:       1000,
-		Nonce:      types.BlockNonce{0x1},
-		Extra:      []byte{},
-		Difficulty: big.NewInt(0),
-		GasLimit:   100000,
 	}
 	return &header
 }

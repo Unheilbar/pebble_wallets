@@ -93,11 +93,14 @@ func NewDatabase(diskdb ethdb.Database, config *Config) *Database {
 	if config.Preimages {
 		preimages = newPreimageStore(diskdb)
 	}
+
 	db := &Database{
 		config:    config,
 		diskdb:    diskdb,
 		preimages: preimages,
 	}
+
+	db.backend = hashdb.New(diskdb, config.HashDB, mptResolver{})
 
 	return db
 }

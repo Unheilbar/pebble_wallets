@@ -7,7 +7,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/Unheilbar/pebbke_wallets/core"
+	// Add VM and runtime to core
 	"github.com/Unheilbar/pebbke_wallets/core/state"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/core/vm"
@@ -173,8 +173,8 @@ func newTxContext(from common.Address) vm.TxContext {
 
 func newBlockContext(cfg *runtime.Config, blockNumber *big.Int) vm.BlockContext {
 	return vm.BlockContext{
-		CanTransfer: core.CanTransfer,
-		Transfer:    core.Transfer,
+		CanTransfer: func(db vm.StateDB, addr common.Address, amount *big.Int) bool { return true },
+		Transfer:    func(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {},
 		GetHash:     cfg.GetHashFn,
 		Coinbase:    cfg.Coinbase,
 		BlockNumber: cfg.BlockNumber,
@@ -265,8 +265,8 @@ func NewEVMBlockContext(header *types.Header) vm.BlockContext {
 	)
 
 	return vm.BlockContext{
-		CanTransfer: core.CanTransfer,
-		Transfer:    core.Transfer,
+		CanTransfer: CanTransfer,
+		Transfer:    Transfer, //
 		GetHash: func(n uint64) common.Hash {
 			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
 		},

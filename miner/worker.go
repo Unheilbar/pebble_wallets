@@ -12,6 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 )
 
+// PEBBLE probably not supported...
+
 // environment is the worker's current environment and holds all
 // information of the sealing block generation.
 type environment struct {

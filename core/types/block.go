@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/trie"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -41,14 +40,14 @@ var hasherPool = sync.Pool{
 	New: func() interface{} { return sha3.NewLegacyKeccak256() },
 }
 
-func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
+func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher TrieHasher) *Block {
 	b := &Block{
 		Transactions: txs,
 		Receipts:     receipts,
 	}
 
-	header.ReceiptHash = DeriveSha(Receipts(receipts), trie.NewStackTrie(nil))
-	header.TxHash = DeriveSha(Transactions(txs), trie.NewStackTrie(nil))
+	header.ReceiptHash = DeriveSha(Receipts(receipts), hasher)
+	header.TxHash = DeriveSha(Transactions(txs), hasher)
 
 	b.header = header
 	return b

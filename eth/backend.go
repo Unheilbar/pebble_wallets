@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/Unheilbar/pebbke_wallets/core"
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/txpool"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 

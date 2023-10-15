@@ -23,16 +23,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/trie"
+	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
+	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/trie/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/trie/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/trie/trienode"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -163,11 +162,9 @@ type testHelper struct {
 func newHelper(scheme string) *testHelper {
 	diskdb := rawdb.NewMemoryDatabase()
 	config := &trie.Config{}
-	if scheme == rawdb.PathScheme {
-		config.PathDB = &pathdb.Config{} // disable caching
-	} else {
-		config.HashDB = &hashdb.Config{} // disable caching
-	}
+
+	config.HashDB = &hashdb.Config{} // disable caching
+
 	triedb := trie.NewDatabase(diskdb, config)
 	accTrie, _ := trie.NewStateTrie(trie.StateTrieID(types.EmptyRootHash), triedb)
 	return &testHelper{

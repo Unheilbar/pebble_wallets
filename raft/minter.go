@@ -9,10 +9,11 @@ import (
 	"log"
 
 	"github.com/Unheilbar/pebbke_wallets/core"
+	"github.com/Unheilbar/pebbke_wallets/core/state"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/trie"
 	"github.com/eapache/channels"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/oleiade/lane"
@@ -135,7 +136,7 @@ func (minter *minter) mintNewBlock() {
 		}
 	}
 
-	block := types.NewBlock(header, committedTxes, receipts)
+	block := types.NewBlock(header, committedTxes, receipts, trie.NewStackTrie(nil))
 
 	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount)
 

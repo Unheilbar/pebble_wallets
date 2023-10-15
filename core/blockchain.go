@@ -12,10 +12,10 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/state"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 )
 
 type Blockchain struct {

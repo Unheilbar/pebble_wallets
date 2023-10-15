@@ -13,6 +13,9 @@ import (
 
 var EmptyCodeHash = crypto.Keccak256Hash(nil)
 
+// EmptyRootHash is the known root hash of an empty trie.
+var EmptyRootHash = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+
 // encodeBufferPool holds temporary encoder buffers for DeriveSha and TX encoding.
 var encodeBufferPool = sync.Pool{
 	New: func() interface{} { return new(bytes.Buffer) },

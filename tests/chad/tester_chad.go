@@ -101,7 +101,7 @@ func (c *Chad) GetContractDeployTX(from common.Address, contrCode []byte) *types
 	}
 }
 
-const emissionVal = 1000
+const emissionVal = 1000000000
 
 func getContractEmissionTX(wallet []byte, contrAddr common.Address) *types.Transaction {
 	var arr [32]byte

@@ -29,4 +29,4 @@ up-full-node:
 stress-minter:
 	rm -rf chaindb
 	rm -rf logs/*
-	go test -v -run 'Test__RunStressMinter' tests/*.go
+	go test -v -run 'Test__RunStressMinter' tests/*.go -timeout 99999s

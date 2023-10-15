@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"time"
 
 	// Add VM and runtime to core
 	"github.com/Unheilbar/pebbke_wallets/core/state"
@@ -90,16 +91,21 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 	if len(txs) == 0 {
 		return nil, nil, nil
 	}
-
-	blockCtx := NewEVMBlockContext(header)
-	// PEBBLE we use cancun by default
-	evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
+	defer func(t time.Time) {
+		fmt.Println("apply txes tx/s ", float64(len(txs))/time.Since(t).Seconds())
+	}(time.Now())
+	// blockCtx := NewEVMBlockContext(header)
+	// // PEBBLE we use cancun by default
+	// evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 	var receipts []*types.Receipt
 	var appliedTxs []*types.Transaction
 	blockHash := header.Hash()
 	blockNumber := header.Number
 	txCount := 0
 	for _, tx := range txs {
+		blockCtx := NewEVMBlockContext(header)
+		// PEBBLE we use cancun by default
+		evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 		evm.Reset(newTxContext(tx.From()), statedb)
 		snap := statedb.Snapshot()
 		statedb.SetTxContext(tx.Hash(), txCount)

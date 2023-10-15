@@ -113,11 +113,17 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 	return nil
 }
 
+func getSpeed(txes int, interval time.Duration) float64 {
+	return float64(txes) / interval.Seconds()
+}
+
 func (bc *Blockchain) InsertChain(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	return bc.writeBlockAndSetHead(block)
-
+	elapsed := time.Since(time.Unix(0, int64(block.Time())))
+	err := bc.writeBlockAndSetHead(block)
+	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(block.Transactions), getSpeed(len(block.Transactions), elapsed), "tx/s ")
+	return err
 }
 
 func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.StateDB) error {

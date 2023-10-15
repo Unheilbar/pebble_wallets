@@ -27,18 +27,10 @@ contract Transfer {
         require(stateContract.getWalletStatus(fromWalletId)!=2, "from wallet status failed");
         require(stateContract.getWalletStatus(toWalletId)!=2, "to wallet status failed");
         
-        uint8 fromWalletType = stateContract.getWalletType(fromWalletId);
-        uint8 toWalletType = stateContract.getWalletType(toWalletId);
-        uint8[] memory canTransferTo = stateContract.getAvailableTransferTypes(fromWalletType);
+
+        bool canTransferTo = stateContract.getAvailableTransferTypes(fromWalletId, toWalletId);
         
-        bool ok = false;
-        for (uint i=0;i<canTransferTo.length;i++){
-            if (canTransferTo[i] == toWalletType) {
-                ok = true;
-                break;
-            }
-        }
-        require(ok, "unavailable transfer type");
+        require(canTransferTo != false, "unavailable transfer"); // cause i dont set wallet types for deploy
 
         stateContract.add(toWalletId, amount);
         stateContract.sub(toWalletId, amount);

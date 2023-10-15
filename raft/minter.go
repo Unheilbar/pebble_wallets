@@ -127,18 +127,20 @@ func (minter *minter) mintNewBlock() {
 	// update block hash since it is now available, but was not when the
 	// receipt/log of individual transactions were created:
 	headerHash := header.Hash()
+	var logs int
 	for _, r := range receipts {
 		if r.Logs != nil {
 			for _, l := range r.Logs {
 				l.BlockHash = headerHash
 				l.TxHash = r.TxHash
+				logs++
 			}
 		}
 	}
 
 	block := types.NewBlock(header, committedTxes, receipts, trie.NewStackTrie(nil))
 
-	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount)
+	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount, "len logs", logs)
 
 	if err := minter.chain.CommitBlockWithState(header.Number.Uint64(), work.publicState); err != nil {
 		panic(err)
@@ -151,17 +153,13 @@ func (minter *minter) mintNewBlock() {
 	elapsed := time.Since(time.Unix(0, int64(header.Time)))
 	log.Println("🔨  Mined block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), " elapsed ", elapsed, " len(txs): ", len(committedTxes))
 
-	err := minter.eth.blockchain.InsertChain(block)
-	if err != nil {
-		log.Fatal("cant insert chain", err)
-	}
+	go func() {
+		err := minter.eth.blockchain.InsertChain(block)
+		if err != nil {
+			log.Fatal("cant insert chain", err)
+		}
+	}()
 
-	elapsed = time.Since(time.Unix(0, int64(header.Time)))
-	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(committedTxes), getSpeed(len(committedTxes), elapsed), "tx/s ")
-}
-
-func getSpeed(txes int, interval time.Duration) float64 {
-	return float64(txes) / interval.Seconds()
 }
 
 func (env *work) commitTransactions(txs []*types.Transaction, bc *core.Blockchain) (types.Transactions, types.Receipts) {

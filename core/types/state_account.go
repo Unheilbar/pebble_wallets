@@ -18,7 +18,6 @@ package types
 
 import (
 	"bytes"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -29,8 +28,6 @@ import (
 // StateAccount is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
 type StateAccount struct {
-	Nonce    uint64
-	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
 }
@@ -38,7 +35,6 @@ type StateAccount struct {
 // NewEmptyStateAccount constructs an empty state account.
 func NewEmptyStateAccount() *StateAccount {
 	return &StateAccount{
-		Balance:  new(big.Int),
 		Root:     EmptyRootHash,
 		CodeHash: EmptyCodeHash.Bytes(),
 	}
@@ -46,13 +42,7 @@ func NewEmptyStateAccount() *StateAccount {
 
 // Copy returns a deep-copied state account object.
 func (acct *StateAccount) Copy() *StateAccount {
-	var balance *big.Int
-	if acct.Balance != nil {
-		balance = new(big.Int).Set(acct.Balance)
-	}
 	return &StateAccount{
-		Nonce:    acct.Nonce,
-		Balance:  balance,
 		Root:     acct.Root,
 		CodeHash: common.CopyBytes(acct.CodeHash),
 	}
@@ -62,18 +52,13 @@ func (acct *StateAccount) Copy() *StateAccount {
 // with a byte slice. This format can be used to represent full-consensus format
 // or slim format which replaces the empty root and code hash as nil byte slice.
 type SlimAccount struct {
-	Nonce    uint64
-	Balance  *big.Int
 	Root     []byte // Nil if root equals to types.EmptyRootHash
 	CodeHash []byte // Nil if hash equals to types.EmptyCodeHash
 }
 
 // SlimAccountRLP encodes the state account in 'slim RLP' format.
 func SlimAccountRLP(account StateAccount) []byte {
-	slim := SlimAccount{
-		Nonce:   account.Nonce,
-		Balance: account.Balance,
-	}
+	slim := SlimAccount{}
 	if account.Root != EmptyRootHash {
 		slim.Root = account.Root[:]
 	}
@@ -95,7 +80,6 @@ func FullAccount(data []byte) (*StateAccount, error) {
 		return nil, err
 	}
 	var account StateAccount
-	account.Nonce, account.Balance = slim.Nonce, slim.Balance
 
 	// Interpret the storage root and code hash in slim format.
 	if len(slim.Root) == 0 {

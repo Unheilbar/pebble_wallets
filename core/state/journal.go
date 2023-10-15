@@ -188,7 +188,6 @@ func (ch selfDestructChange) revert(s *StateDB) {
 	obj := s.getStateObject(*ch.account)
 	if obj != nil {
 		obj.selfDestructed = ch.prev
-		obj.setBalance(ch.prevbalance)
 	}
 }
 
@@ -206,7 +205,7 @@ func (ch touchChange) dirtied() *common.Address {
 }
 
 func (ch balanceChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setBalance(ch.prev)
+
 }
 
 func (ch balanceChange) dirtied() *common.Address {
@@ -214,7 +213,7 @@ func (ch balanceChange) dirtied() *common.Address {
 }
 
 func (ch nonceChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setNonce(ch.prev)
+
 }
 
 func (ch nonceChange) dirtied() *common.Address {

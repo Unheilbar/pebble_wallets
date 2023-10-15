@@ -94,7 +94,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if contractCreation {
 		ret, _, _, vmerr = st.evm.Create(sender, msg.Data(), math.MaxUint64, value)
 
-		contractAddr := crypto.CreateAddress(sender.Address(), st.evm.StateDB.GetNonce(sender.Address())-1) // hack because we form contract address not with nonce
+		contractAddr := crypto.CreateAddress(sender.Address(), 1) // hack because we form contract address not with nonce
 		check := st.evm.StateDB.GetCode(contractAddr)
 		if check == nil {
 			panic("evm create code err")

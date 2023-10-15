@@ -19,7 +19,6 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 	"time"
 
@@ -279,25 +278,6 @@ func (s *StateDB) Empty(addr common.Address) bool {
 	return so == nil || so.empty()
 }
 
-// GetBalance retrieves the balance from the given address or 0 if object not found
-func (s *StateDB) GetBalance(addr common.Address) *big.Int {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Balance()
-	}
-	return common.Big0
-}
-
-// GetNonce retrieves the nonce from the given address or 0 if object not found
-func (s *StateDB) GetNonce(addr common.Address) uint64 {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Nonce()
-	}
-
-	return 0
-}
-
 // GetStorageRoot retrieves the storage root from the given address or empty
 // if object not found.
 func (s *StateDB) GetStorageRoot(addr common.Address) common.Hash {
@@ -372,36 +352,6 @@ func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
  * SETTERS
  */
 
-// AddBalance adds amount to the account associated with addr.
-func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.AddBalance(amount)
-	}
-}
-
-// SubBalance subtracts amount from the account associated with addr.
-func (s *StateDB) SubBalance(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SubBalance(amount)
-	}
-}
-
-func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SetBalance(amount)
-	}
-}
-
-func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SetNonce(nonce)
-	}
-}
-
 func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -448,12 +398,10 @@ func (s *StateDB) SelfDestruct(addr common.Address) {
 		return
 	}
 	s.journal.append(selfDestructChange{
-		account:     &addr,
-		prev:        stateObject.selfDestructed,
-		prevbalance: new(big.Int).Set(stateObject.Balance()),
+		account: &addr,
+		prev:    stateObject.selfDestructed,
 	})
 	stateObject.markSelfdestructed()
-	stateObject.data.Balance = new(big.Int)
 }
 
 func (s *StateDB) Selfdestruct6780(addr common.Address) {
@@ -575,8 +523,6 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 				return nil
 			}
 			data = &types.StateAccount{
-				Nonce:    acc.Nonce,
-				Balance:  acc.Balance,
 				CodeHash: acc.CodeHash,
 				Root:     common.BytesToHash(acc.Root),
 			}
@@ -679,10 +625,8 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 //
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (s *StateDB) CreateAccount(addr common.Address) {
-	newObj, prev := s.createObject(addr)
-	if prev != nil {
-		newObj.setBalance(prev.data.Balance)
-	}
+	s.createObject(addr)
+
 }
 
 // Copy creates a deep, independent copy of the state.
@@ -1318,7 +1262,7 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 		al := newAccessList()
 		s.accessList = al
 
-		al.AddAddress(sender)
+		// al.AddAddress(sender)
 		if dst != nil {
 			al.AddAddress(*dst)
 			// If it's a create-tx, the destination will be added inside evm.create

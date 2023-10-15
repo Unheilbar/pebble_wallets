@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"math/big"
-	"time"
 
 	// Add VM and runtime to core
 	"github.com/Unheilbar/pebbke_wallets/core/state"
@@ -91,9 +90,9 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 	if len(txs) == 0 {
 		return nil, nil, nil
 	}
-	defer func(t time.Time) {
-		fmt.Println("apply txes tx/s ", float64(len(txs))/time.Since(t).Seconds())
-	}(time.Now())
+	// defer func(t time.Time) {
+	// 	fmt.Println("apply txes tx/s ", float64(len(txs))/time.Since(t).Seconds())
+	// }(time.Now())
 	// blockCtx := NewEVMBlockContext(header)
 	// // PEBBLE we use cancun by default
 	// evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
@@ -129,9 +128,9 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 
 		created := tx.To() == nil
 		if created {
-			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, statedb.GetNonce(tx.From())-1) //TODO think of something //nonce has been increased
+			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, 1) //TODO think of something //nonce has been increased
 			receipt.ContractAddress = contractAddress
-			log.Println("successed deploy", contractAddress, "sender ", tx.From().Hex(), "nonce", statedb.GetNonce(tx.From())-1)
+			log.Println("successed deploy", contractAddress, "sender ", tx.From().Hex(), "nonce", 1)
 		}
 
 		receipt.Logs = getLogs(tx.Hash(), header.Number.Uint64(), header.Hash(), statedb)

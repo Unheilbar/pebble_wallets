@@ -198,7 +198,7 @@ func (minter *minter) eventLoop() {
 			if atomic.LoadInt32(&minter.minting) == 1 {
 				minter.requestMinting()
 			}
-		case <-time.After(time.Second):
+		case <-time.After(time.Millisecond * 500):
 			if atomic.LoadInt32(&minter.minting) == 1 {
 				minter.requestMinting()
 			}

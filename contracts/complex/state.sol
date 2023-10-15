@@ -13,7 +13,8 @@ contract State {
 
     // user with walletType 0 can transfer to user with wallet types 1 and 2 which is abi encoded 0x0000000000000000000000000000000000000000000000000000000000000001;
     constructor() {
-        walletAvailableTransferTypes[0x0000000000000000000000000000000000000000000000000000000000000001]=true;
+        // first 16 bytes encode fromWallet, last 16 bytes toWallet
+        walletAvailableTransferTypes[0x0000000000000000000000000000000000100000000000000000000000000001]=true;
     }
 
     function add(bytes32 walletId, uint256 amount) public innerCall {

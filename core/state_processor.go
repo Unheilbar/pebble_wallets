@@ -11,19 +11,18 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/state"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/core/vm"
-	"github.com/Unheilbar/pebbke_wallets/core/vm/runtime"
+
+	// "github.com/Unheilbar/pebbke_wallets/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
 )
 
 type StateProcessor struct {
-	cfg *runtime.Config
 }
 
-func NewStateProcessor(cfg *runtime.Config) *StateProcessor {
-	return &StateProcessor{cfg}
+func NewStateProcessor() *StateProcessor {
+	return &StateProcessor{}
 }
 
 func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*types.Receipt {
@@ -32,7 +31,9 @@ func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*t
 		blockHash   = block.Hash()
 		blockNumber = block.Number()
 	)
-	evm := runtime.NewEnv(p.cfg)
+
+	evm := vm.NewEVM(vm)
+	// evm := runtime.NewEnv(p.cfg) //PEBBLE don't call it here
 	evm.SetBlockContext(newBlockContext(p.cfg, blockNumber))
 
 	for i, tx := range block.Transactions {
@@ -92,8 +93,8 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		return nil, nil, nil
 	}
 
-	cfg := getDefaultCfg()
-	evm := runtime.NewEnv(cfg)
+	evm := vm.NewEVM()
+	// evm := runtime.NewEnv(cfg) // PEBBLE don't call it here
 	blockCtx := NewEVMBlockContext(header)
 	evm.SetBlockContext(blockCtx)
 	var receipts []*types.Receipt
@@ -171,21 +172,6 @@ func newTxContext(from common.Address) vm.TxContext {
 	}
 }
 
-func newBlockContext(cfg *runtime.Config, blockNumber *big.Int) vm.BlockContext {
-	return vm.BlockContext{
-		CanTransfer: func(db vm.StateDB, addr common.Address, amount *big.Int) bool { return true },
-		Transfer:    func(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {},
-		GetHash:     cfg.GetHashFn,
-		Coinbase:    cfg.Coinbase,
-		BlockNumber: cfg.BlockNumber,
-		Time:        cfg.Time,
-		Difficulty:  cfg.Difficulty,
-		GasLimit:    cfg.GasLimit,
-		BaseFee:     cfg.BaseFee,
-		Random:      cfg.Random,
-	}
-}
-
 func preCheck(tx *types.Transaction) (bool, error) {
 	sigPublicKey, err := crypto.Ecrecover(tx.Hash().Bytes(), tx.Signature)
 	if err != nil {
@@ -194,56 +180,6 @@ func preCheck(tx *types.Transaction) (bool, error) {
 	var addr common.Address
 	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
 	return bytes.Equal(addr.Bytes(), tx.From.Bytes()), nil
-}
-
-func getDefaultCfg() *runtime.Config {
-	cfg := new(runtime.Config)
-	cfg.ChainConfig = &params.ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      new(big.Int),
-		DAOForkBlock:        new(big.Int),
-		DAOForkSupport:      false,
-		EIP150Block:         new(big.Int),
-		EIP155Block:         new(big.Int),
-		EIP158Block:         new(big.Int),
-		ByzantiumBlock:      new(big.Int),
-		ConstantinopleBlock: new(big.Int),
-		PetersburgBlock:     new(big.Int),
-		IstanbulBlock:       new(big.Int),
-		MuirGlacierBlock:    new(big.Int),
-		BerlinBlock:         new(big.Int),
-		LondonBlock:         new(big.Int),
-	}
-
-	cfg.ChainConfig.CancunTime = &[]uint64{0}[0] // default cancun mode
-
-	if cfg.Difficulty == nil {
-		cfg.Difficulty = new(big.Int)
-	}
-	if cfg.GasLimit == 0 {
-		cfg.GasLimit = math.MaxUint64
-	}
-	if cfg.GasPrice == nil {
-		cfg.GasPrice = new(big.Int)
-	}
-
-	if cfg.Value == nil {
-		cfg.Value = new(big.Int)
-	}
-	if cfg.BlockNumber == nil {
-		cfg.BlockNumber = big.NewInt(1)
-	}
-	if cfg.GetHashFn == nil { //TODO probably replace since can be used inside EVM
-		cfg.GetHashFn = func(n uint64) common.Hash {
-			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
-		}
-	}
-
-	if cfg.BaseFee == nil {
-		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
-	}
-
-	return cfg
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the

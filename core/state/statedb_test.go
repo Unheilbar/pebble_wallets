@@ -35,7 +35,6 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie"
 	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
-	"github.com/Unheilbar/pebbke_wallets/trie/triedb/pathdb"
 	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -329,7 +328,8 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 			fn: func(a testAction, s *StateDB) {
 				data := make([]byte, 2)
 				binary.BigEndian.PutUint16(data, uint16(a.args[0]))
-				s.AddLog(&types.Log{Address: addr, Data: data})
+				s.AddLog(&types.Log{
+					Data: data})
 			},
 			args: make([]int64, 1),
 		},
@@ -804,16 +804,11 @@ func testMissingTrieNodes(t *testing.T, scheme string) {
 		triedb *trie.Database
 		memDb  = rawdb.NewMemoryDatabase()
 	)
-	if scheme == rawdb.PathScheme {
-		triedb = trie.NewDatabase(memDb, &trie.Config{PathDB: &pathdb.Config{
-			CleanCacheSize: 0,
-			DirtyCacheSize: 0,
-		}}) // disable caching
-	} else {
-		triedb = trie.NewDatabase(memDb, &trie.Config{HashDB: &hashdb.Config{
-			CleanCacheSize: 0,
-		}}) // disable caching
-	}
+
+	triedb = trie.NewDatabase(memDb, &trie.Config{HashDB: &hashdb.Config{
+		CleanCacheSize: 0,
+	}}) // disable caching
+
 	db := NewDatabaseWithNodeDB(memDb, triedb)
 
 	var root common.Hash

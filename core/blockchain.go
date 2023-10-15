@@ -50,7 +50,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	})
 	block.Transactions = []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))}
 	statedb, err := state.New(common.Hash{}, bc.stateCache, nil)
-	stProcessor := NewStateProcessor(getDefaultCfg())
+	stProcessor := NewStateProcessor()
 	receipts := stProcessor.Process(*block, statedb)
 	receipt := receipts[0]
 	contrAddr := receipt.ContractAddress

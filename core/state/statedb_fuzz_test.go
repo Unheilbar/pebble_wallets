@@ -33,7 +33,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/state/snapshot"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie"
-	"github.com/Unheilbar/pebbke_wallets/trie/triedb/pathdb"
+	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
 	"github.com/Unheilbar/pebbke_wallets/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -181,7 +181,7 @@ func (test *stateTest) run() bool {
 			storageList = append(storageList, copy2DSet(states.Storages))
 		}
 		disk      = rawdb.NewMemoryDatabase()
-		tdb       = trie.NewDatabase(disk, &trie.Config{PathDB: pathdb.Defaults})
+		tdb       = trie.NewDatabase(disk, &trie.Config{HashDB: hashdb.Defaults})
 		sdb       = NewDatabaseWithNodeDB(disk, tdb)
 		byzantium = rand.Intn(2) == 0
 	)

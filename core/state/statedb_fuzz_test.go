@@ -30,12 +30,12 @@ import (
 	"testing/quick"
 
 	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebbke_wallets/core/state/snapshot"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie"
 	"github.com/Unheilbar/pebbke_wallets/trie/triedb/pathdb"
 	"github.com/Unheilbar/pebbke_wallets/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 )

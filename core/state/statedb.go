@@ -24,12 +24,12 @@ import (
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebbke_wallets/core/state/snapshot"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie"
 	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
 	"github.com/Unheilbar/pebbke_wallets/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"

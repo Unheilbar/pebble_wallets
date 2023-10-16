@@ -28,11 +28,27 @@ func Test__RunStressMinter(t *testing.T) {
 	defer f.Close()
 
 	log.SetOutput(f)
-	node, e := makeFullNode()
-	RegisterRaftService(node, e)
+
+	// start peers
+	bootstrapNodes := []string{
+		"http://127.0.0.1:5000",
+		"http://127.0.0.1:5001",
+	}
+
+	// node 1
+	firstNode, firstEth := makeFullNode()
+	service1 := RegisterRaftService(firstNode, firstEth, 1, bootstrapNodes, "./firstRaftNode")
+	service1.StartRaftNode()
+	service1.StartMinter()
+
+	// node 2
+	secondNode, secondEth := makeFullNode()
+	service2 := RegisterRaftService(secondNode, secondEth, 2, bootstrapNodes, "./secondRaftNode")
+	service2.StartRaftNode()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	api := eth.NewApi(e)
+	api := eth.NewApi(firstEth)
 
 	runStress(api)
 	<-ctx.Done()
@@ -44,10 +60,10 @@ func makeFullNode() (*node.Node, *eth.Ethereum) {
 
 	return stack, ethService
 }
-func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
-	raft.NewRaft(e, blockThrottle)
-
+func RegisterRaftService(n *node.Node, e *eth.Ethereum, raftId uint16, bootstrapNodes []string, raftLogDir string) *raft.RaftService {
+	service := raft.NewRaft(e, blockThrottle, raftId, bootstrapNodes, raftLogDir)
 	log.Print("raft service registered")
+	return service
 }
 
 var minterStressWalletsAmount = 10
@@ -73,6 +89,7 @@ func runStress(api *eth.EthAPIBackend) {
 
 	// deployed addresses state 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3 transfer 0x98aCaC3B9c77c934C12780a2852A959E674970A3 event 0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467 proxy 0x4BD6080baB7FB15D17bb211e333A87B7edE02D91
 	emissions := tester.GenerateAccEmissionsTx(Proxy)
+
 	api.SendTxs(context.Background(), emissions)
 	time.Sleep(time.Second * 3) // wait emissions to process
 	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)

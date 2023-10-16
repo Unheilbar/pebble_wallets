@@ -5,6 +5,7 @@ import (
 
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/txpool"
+	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/eth"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
@@ -17,19 +18,22 @@ type RaftService struct {
 
 	eventMux *event.TypeMux
 	minter   *minter
+	raftNode *raftNode
 	// nodeKey          *ecdsa.PrivateKey
 	// calcGasLimitFunc func(block *types.Block) uint64
 }
 
-func NewRaft(e *eth.Ethereum, blockTime time.Duration) *RaftService {
+func NewRaft(e *eth.Ethereum, blockTime time.Duration, raftId uint16, bootstrapNodes []string, raftLogDir string) *RaftService {
 	service := &RaftService{
 		chainDb:    e.ChainDb(),
 		blockchain: e.Blockchain(),
 		txPool:     e.TxPool(),
 	}
 
-	service.minter = newMinter(service, blockTime)
+	proposeBlockC := make(chan *types.Block, 10)
+	service.minter = newMinter(service, blockTime, proposeBlockC)
 
+	service.raftNode = NewRaftNode(raftId, proposeBlockC, bootstrapNodes, raftLogDir)
 	return service
 }
 
@@ -42,3 +46,11 @@ func (service *RaftService) Blockchain() *core.Blockchain {
 }
 
 func (service *RaftService) ChainDb() ethdb.Database { return service.chainDb }
+
+func (service *RaftService) StartMinter() {
+	service.minter.start()
+}
+
+func (service *RaftService) StartRaftNode() {
+	service.raftNode.startRaft()
+}

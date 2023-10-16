@@ -30,11 +30,12 @@ type minter struct {
 	speculativeChain *speculativeChain
 	eth              *RaftService
 	// invalidRaftOrderingChan chan InvalidRaftOrdering
-	chainHeadSub event.Subscription
-	txPreChan    chan core.NewTxsEvent
+	chainHeadSub  event.Subscription
+	txPreChan     chan core.NewTxsEvent
+	proposeBlockC chan *types.Block
 }
 
-func newMinter(eth *RaftService, blockTime time.Duration) *minter {
+func newMinter(eth *RaftService, blockTime time.Duration, proposeBlockC chan *types.Block) *minter {
 	minter := &minter{
 		eth:              eth,
 		chainDb:          eth.ChainDb(),
@@ -43,7 +44,8 @@ func newMinter(eth *RaftService, blockTime time.Duration) *minter {
 		blockTime:        blockTime,
 		speculativeChain: newSpeculativeChain(),
 
-		txPreChan: make(chan core.NewTxsEvent, 4096),
+		txPreChan:     make(chan core.NewTxsEvent, 4096),
+		proposeBlockC: proposeBlockC,
 	}
 
 	minter.speculativeChain.clear(minter.chain.CurrentBlock())
@@ -51,7 +53,6 @@ func newMinter(eth *RaftService, blockTime time.Duration) *minter {
 	go minter.mintingLoop()
 	go minter.eventLoop()
 
-	minter.start()
 	return minter
 }
 
@@ -151,13 +152,15 @@ func (minter *minter) mintNewBlock() {
 	elapsed := time.Since(time.Unix(0, int64(header.Time)))
 	log.Println("🔨  Mined block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), " elapsed ", elapsed, " len(txs): ", len(committedTxes))
 
-	err := minter.eth.blockchain.InsertChain(block)
-	if err != nil {
-		log.Fatal("cant insert chain", err)
-	}
+	//propose block
+	minter.proposeBlockC <- block
+	//err := minter.eth.blockchain.InsertChain(block)
+	//if err != nil {
+	//	log.Fatal("cant insert chain", err)
+	//}
 
-	elapsed = time.Since(time.Unix(0, int64(header.Time)))
-	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(committedTxes), getSpeed(len(committedTxes), elapsed), "tx/s ")
+	//elapsed = time.Since(time.Unix(0, int64(header.Time)))
+	//log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(committedTxes), getSpeed(len(committedTxes), elapsed), "tx/s ")
 }
 
 func getSpeed(txes int, interval time.Duration) float64 {

@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"math/big"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -759,9 +758,8 @@ func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
 	accounts = make([][]byte, len(addresses))
 	for i := 0; i < len(accounts); i++ {
 		var (
-			nonce = uint64(random.Int63())
-			root  = types.EmptyRootHash
-			code  = crypto.Keccak256(nil)
+			root = types.EmptyRootHash
+			code = crypto.Keccak256(nil)
 		)
 		// The big.Rand function is not deterministic with regards to 64 vs 32 bit systems,
 		// and will consume different amount of data from the rand source.
@@ -770,8 +768,7 @@ func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
 		numBytes := random.Uint32() % 33 // [0, 32] bytes
 		balanceBytes := make([]byte, numBytes)
 		random.Read(balanceBytes)
-		balance := new(big.Int).SetBytes(balanceBytes)
-		data, _ := rlp.EncodeToBytes(&types.StateAccount{Nonce: nonce, Balance: balance, Root: root, CodeHash: code})
+		data, _ := rlp.EncodeToBytes(&types.StateAccount{Root: root, CodeHash: code})
 		accounts[i] = data
 	}
 	return addresses, accounts

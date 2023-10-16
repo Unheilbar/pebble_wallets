@@ -2,4 +2,5 @@ main
 testdb
 chaindb
 logs
-pprofs
+mem.prof
+tests.test

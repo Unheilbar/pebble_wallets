@@ -116,7 +116,7 @@ func (minter *minter) mintNewBlock() {
 	txCount := len(committedTxes)
 
 	if txCount == 0 {
-		log.Print("Not minting a new block since there are no pending transactions")
+		// log.Print("Not minting a new block since there are no pending transactions")
 		return
 	}
 
@@ -171,8 +171,6 @@ func (env *work) commitTransactions(txs []*types.Transaction, bc *core.Blockchai
 	return txes, receipts
 }
 
-const maxBlockSize = 1000
-
 func (minter *minter) getTransactions() []*types.Transaction {
 	return minter.eth.TxPool().Pending(maxBlockSize)
 }
@@ -191,6 +189,8 @@ func (minter *minter) mintingLoop() {
 	}
 }
 
+const maxBlockSize = 300
+
 func (minter *minter) eventLoop() {
 	for {
 		select {
@@ -198,7 +198,7 @@ func (minter *minter) eventLoop() {
 			if atomic.LoadInt32(&minter.minting) == 1 {
 				minter.requestMinting()
 			}
-		case <-time.After(time.Millisecond * 500):
+		case <-time.After(time.Millisecond * 50):
 			if atomic.LoadInt32(&minter.minting) == 1 {
 				minter.requestMinting()
 			}

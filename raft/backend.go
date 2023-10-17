@@ -33,7 +33,7 @@ func NewRaft(e *eth.Ethereum, blockTime time.Duration, raftId uint16, bootstrapN
 	proposeBlockC := make(chan *types.Block, 10)
 	service.minter = newMinter(service, blockTime, proposeBlockC)
 
-	service.raftNode = NewRaftNode(raftId, proposeBlockC, bootstrapNodes, raftLogDir)
+	service.raftNode = NewRaftNode(raftId, e.Blockchain(), proposeBlockC, bootstrapNodes, raftLogDir)
 	return service
 }
 

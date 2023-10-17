@@ -2,6 +2,7 @@ package raft
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"net/http"
@@ -87,7 +88,7 @@ func openQuorumRaftDb(path string) (db *leveldb.DB, err error) {
 	return
 }
 
-func NewRaftNode(raftId uint16, blockProposalC chan *types.Block, bootstrapNodes []string, raftLogDir string) *raftNode {
+func NewRaftNode(raftId uint16, blockchain *core.Blockchain, blockProposalC chan *types.Block, bootstrapNodes []string, raftLogDir string) *raftNode {
 	waldir := fmt.Sprintf("%s/raft-wal", raftLogDir)
 	snapdir := fmt.Sprintf("%s/raft-snap", raftLogDir)
 	//init storage
@@ -99,7 +100,10 @@ func NewRaftNode(raftId uint16, blockProposalC chan *types.Block, bootstrapNodes
 
 	return &raftNode{
 		id:               int(raftId),
+		blockchain:       blockchain,
 		join:             false,
+		bootstrapNodes:   bootstrapNodes,
+		removedPeers:     mapset.NewSet(),
 		snapdir:          snapdir,
 		waldir:           waldir,
 		quorumRaftdb:     db,
@@ -132,8 +136,10 @@ func (rn *raftNode) startRaft() {
 
 	rpeers := make([]etcdRaft.Peer, len(rn.bootstrapNodes))
 	for i := range rpeers {
+
 		rpeers[i] = etcdRaft.Peer{ID: uint64(i + 1)}
 	}
+
 	c := &etcdRaft.Config{
 		ID:                        uint64(rn.id),
 		ElectionTick:              10,
@@ -163,13 +169,13 @@ func (rn *raftNode) startRaft() {
 	rn.transport.Start()
 	for i := range rn.bootstrapNodes {
 		if i+1 != rn.id {
-			log.Println("Add peer id", rafttypes.ID(i+1))
 			rn.transport.AddPeer(rafttypes.ID(i+1), []string{rn.bootstrapNodes[i]})
 		}
 	}
 
 	go rn.serveRaft()
 	go rn.eventLoop()
+	go rn.serveLocalProposals()
 }
 
 func (rc *raftNode) serveRaft() {
@@ -221,6 +227,8 @@ func (n *raftNode) serveLocalProposals() {
 	for {
 		select {
 		case block, ok := <-n.blockProposalC:
+			log.Println("serve local block", block.Number().Int64())
+
 			if !ok {
 				log.Println("error: read from blockProposalC failed")
 				return
@@ -230,11 +238,15 @@ func (n *raftNode) serveLocalProposals() {
 			if err != nil {
 				panic(fmt.Sprintf("error: failed to send RLP-encoded block: %s", err.Error()))
 			}
+
 			var buffer = make([]byte, uint32(size))
 			r.Read(buffer)
 
 			// blocks until accepted by the raft state machine
-			n.rawNode().Propose(context.Background(), buffer)
+			err = n.rawNode().Propose(context.Background(), buffer)
+			if err != nil {
+				log.Println("error propose block ", err)
+			}
 		case <-n.quitSync:
 			return
 		}
@@ -278,14 +290,36 @@ func (n *raftNode) eventLoop() {
 
 					err = n.blockchain.InsertChain(&block)
 					if err != nil {
-						log.Fatal("error insert to blockchain", err)
+						log.Fatal("error insert to blockchain node ", n.id, err)
 					}
+
 					elapsed := time.Since(time.Unix(0, int64(block.Header().Time)))
 					committedTxes := len(block.Transactions)
-					log.Println("🔨  Insert chain block", "node", n.id, "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", committedTxes, getSpeed(committedTxes, elapsed), "tx/s ")
+					log.Println("🔨  Insert chain block", "node", n.id, "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed, "len(txs): ", committedTxes, getSpeed(committedTxes, elapsed), "tx/s ")
+				case raftpb.EntryConfChange:
+					var cc raftpb.ConfChange
+					cc.Unmarshal(entry.Data)
+					log.Println("new cc ", cc.NodeID, cc.Context, cc.ID)
+					n.confState = *n.rawNode().ApplyConfChange(cc)
+					switch cc.Type {
+					case raftpb.ConfChangeAddNode:
+						if len(cc.Context) > 0 {
+							log.Println("add new node with context")
+							n.transport.AddPeer(rafttypes.ID(cc.NodeID), []string{string(cc.Context)})
+						}
+					case raftpb.ConfChangeRemoveNode:
+						log.Println("I've been removed from the cluster! Shutting down.")
+						//TODO add remove peers
+					}
 				}
+
+				// after commit, update appliedIndex
+				n.advanceAppliedIndex(entry.Index)
 			}
+
+			n.rawNode().Advance()
 		}
+
 	}
 }
 
@@ -416,4 +450,31 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 		nents = ents[rc.appliedIndex-firstIdx+1:]
 	}
 	return nents
+}
+
+// Sets new appliedIndex in-memory, *and* writes this appliedIndex to LevelDB.
+func (n *raftNode) advanceAppliedIndex(index uint64) {
+	n.writeAppliedIndex(index)
+
+	n.mu.Lock()
+	n.appliedIndex = index
+	n.mu.Unlock()
+}
+
+var (
+	appliedDbKey = []byte("applied")
+)
+
+var (
+	noFsync = &opt.WriteOptions{
+		NoWriteMerge: false,
+		Sync:         false,
+	}
+)
+
+func (n *raftNode) writeAppliedIndex(index uint64) {
+	log.Println("persisted the latest applied index", "index", index)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, index)
+	n.quorumRaftdb.Put(appliedDbKey, buf, noFsync)
 }

@@ -76,10 +76,9 @@ func newSpeculativeChain() *speculativeChain {
 }
 
 type work struct {
-	publicState  *state.StateDB
-	privateState *state.StateDB
-	Block        *types.Block
-	header       *types.Header
+	publicState *state.StateDB
+	Block       *types.Block
+	header      *types.Header
 }
 
 // Assumes mu is held.
@@ -154,13 +153,6 @@ func (minter *minter) mintNewBlock() {
 
 	//propose block
 	minter.proposeBlockC <- block
-	//err := minter.eth.blockchain.InsertChain(block)
-	//if err != nil {
-	//	log.Fatal("cant insert chain", err)
-	//}
-
-	//elapsed = time.Since(time.Unix(0, int64(header.Time)))
-	//log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(committedTxes), getSpeed(len(committedTxes), elapsed), "tx/s ")
 }
 
 func getSpeed(txes int, interval time.Duration) float64 {

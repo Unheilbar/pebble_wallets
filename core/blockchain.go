@@ -117,7 +117,6 @@ func (bc *Blockchain) InsertChain(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
 	return bc.writeBlockAndSetHead(block)
-
 }
 
 func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.StateDB) error {

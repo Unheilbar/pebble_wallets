@@ -28,5 +28,6 @@ up-full-node:
 	go run cmd/geth/*.go
 stress-minter:
 	rm -rf chaindb
+	rm -rf chaindb_1 chaindb_2 firstRaftNode secondRaftNode
 	rm -rf logs/*
 	go test -v -run 'Test__RunStressMinter' tests/*.go

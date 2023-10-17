@@ -15,8 +15,8 @@ type Ethereum struct {
 	chainDb    ethdb.Database // Block chain database
 }
 
-func New() *Ethereum {
-	chainDb, err := rawdb.NewPebbleDBDatabase("../chaindb", 1024, 16, "some", false, false)
+func New(dbPath string) *Ethereum {
+	chainDb, err := rawdb.NewPebbleDBDatabase(dbPath, 1024, 16, "some", false, false)
 	if err != nil {
 		log.Fatal("open pebble db when create ethereum ", err)
 	}

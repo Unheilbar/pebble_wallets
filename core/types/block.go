@@ -1,10 +1,13 @@
 package types
 
 import (
+	"io"
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -30,6 +33,10 @@ type Block struct {
 
 	Transactions []*Transaction
 	Receipts     []*Receipt
+
+	// caches
+	hash atomic.Value
+	size atomic.Value
 }
 
 func (block *Block) Hash() common.Hash {
@@ -97,4 +104,30 @@ func (b *Block) WithBody(transactions []*Transaction) *Block {
 	copy(block.Transactions, transactions)
 
 	return block
+}
+
+// "external" block encoding. used for eth protocol, etc.
+type extblock struct {
+	Header *Header
+	Txs    []*Transaction
+}
+
+// DecodeRLP decodes the Ethereum
+func (b *Block) DecodeRLP(s *rlp.Stream) error {
+	var eb extblock
+	_, size, _ := s.Kind()
+	if err := s.Decode(&eb); err != nil {
+		return err
+	}
+	b.header, b.Transactions = eb.Header, eb.Txs
+	b.size.Store(common.StorageSize(rlp.ListSize(size)))
+	return nil
+}
+
+// EncodeRLP serializes b into the Ethereum RLP block format.
+func (b *Block) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, extblock{
+		Header: b.header,
+		Txs:    b.Transactions,
+	})
 }

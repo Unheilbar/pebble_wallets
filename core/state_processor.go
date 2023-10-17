@@ -134,7 +134,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipt.TransactionIndex = uint(statedb.TxIndex())
 		revertReason := result.Revert()
 		if revertReason != nil {
-			fmt.Println(revertReason)
+			fmt.Println("revert reason", revertReason)
 			receipt.RevertReason = revertReason
 		}
 

@@ -2,3 +2,7 @@ main
 testdb
 chaindb
 logs
+firstRaftNode
+secondRaftNode
+chaindb_1
+chaindb_2

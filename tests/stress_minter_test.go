@@ -50,8 +50,8 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
 	log.Print("raft service registered")
 }
 
-var minterStressWalletsAmount = 1000000   // 1000 wallets sounds good for a transaction
-var minterStressTransfersAmount = 1000000 // 10 million transactions
+var minterStressWalletsAmount = 100000   // 1000 wallets sounds good for a transaction
+var minterStressTransfersAmount = 100000 // 10 million transactions
 
 func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	var tester chad.Chad

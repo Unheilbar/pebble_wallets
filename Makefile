@@ -30,4 +30,4 @@ stress-minter:
 	rm -rf chaindb
 	rm -rf logs/*
 	# rm mem.prof
-	go test -v -memprofile mem.prof -run 'Test__RunStressMinter' tests/*.go -timeout 99999s
+	go test -v -cpuprofile cpu.prof -run 'Test__RunStressMinter' tests/*.go -timeout 99999s

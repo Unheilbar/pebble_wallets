@@ -73,6 +73,11 @@ func (tx *Transaction) WithSignature(sig []byte) *Transaction {
 	return tx
 }
 
+func (tx *Transaction) WithTime(t time.Time) *Transaction {
+	tx.time = t
+	return tx
+}
+
 // copyAddressPtr copies an address.
 func copyAddressPtr(a *common.Address) *common.Address {
 	if a == nil {
@@ -97,6 +102,14 @@ func (tx *Transaction) From() common.Address {
 
 func (tx *Transaction) To() *common.Address {
 	return tx.inner.To
+}
+
+func (tx *Transaction) Time() time.Time {
+	return tx.time
+}
+
+func (tx *Transaction) Id() common.Hash {
+	return tx.inner.Id
 }
 
 // Len returns the length of s.

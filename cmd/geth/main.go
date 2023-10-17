@@ -8,12 +8,9 @@ import (
 
 	"log"
 
-	"github.com/Unheilbar/pebbke_wallets/binding"
-	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/eth"
 	"github.com/Unheilbar/pebbke_wallets/node"
 	"github.com/Unheilbar/pebbke_wallets/raft"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var blockThrottle = time.Millisecond * 50
@@ -30,9 +27,8 @@ func main() {
 	RegisterRaftService(node, e)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	api := eth.NewApi(e)
-	api.SendTx(context.Background(), getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:])))
-	go runLoad(api)
+	_ = eth.NewApi(e)
+
 	<-ctx.Done()
 
 }
@@ -49,14 +45,3 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
 
 	log.Print("raft service registered")
 }
-
-// remove later
-func getContractDeployTX(contrCode []byte) *types.Transaction {
-	return &types.Transaction{
-		From:  common.Address{},
-		To:    common.Address{},
-		Input: contrCode,
-	}
-}
-
-func runLoad(api *eth.EthAPIBackend)

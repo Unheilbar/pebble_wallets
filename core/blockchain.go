@@ -12,6 +12,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/state"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/core/vm"
 	"github.com/Unheilbar/pebbke_wallets/trie"
 	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
@@ -28,11 +29,22 @@ type Blockchain struct {
 	currentBlock atomic.Pointer[types.Block] // Current head of the chain
 
 	chainmu sync.RWMutex // blockchain insertion lock
+
+	prefetcher Prefetcher //
 }
 
 type Processor interface {
 	Process(block types.Block, statedb *state.StateDB) []*types.Receipt
 }
+
+// Prefetcher is an interface for pre-caching transaction signatures and state.
+type Prefetcher interface {
+	// Prefetch processes the state changes according to the Ethereum rules by running
+	// the transaction messages using the statedb, but any changes are discarded. The
+	// only goal is to pre-cache transaction signatures and state trie nodes.
+	Prefetch(block *types.Block, statedb *state.StateDB, cfg vm.Config, interrupt *atomic.Bool)
+}
+
 type CacheConfig struct {
 	TrieCleanLimit      int           // Memory allowance (MB) to use for caching trie nodes in memory
 	TrieCleanNoPrefetch bool          // Whether to disable heuristic state prefetching for followup blocks

@@ -74,8 +74,13 @@ func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 
 	// deployed addresses state 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3 transfer 0x98aCaC3B9c77c934C12780a2852A959E674970A3 event 0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467 proxy 0x4BD6080baB7FB15D17bb211e333A87B7edE02D91
 	emissions := tester.GenerateAccEmissionsTx(Proxy)
-	api.SendTxs(context.Background(), emissions)
+	for _, e := range emissions {
+		api.SendTxs(context.Background(), e)
+	}
 	time.Sleep(time.Second * 300) // wait emissions to process
+
 	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)
-	api.SendTxs(context.Background(), transfers)
+	for _, t := range transfers {
+		api.SendTxs(context.Background(), t)
+	}
 }

@@ -7,6 +7,8 @@ type storageUpdated struct {
 	storageChanges map[common.Hash]common.Hash
 }
 
+type currentUpdatesStorage map[common.Hash]common.Hash
+
 // relTrie maps slotHashMaps to storageUpdates
 type relTrie struct {
 	slotHashMap map[common.Hash]storageUpdated
@@ -16,9 +18,14 @@ func (rel *relTrie) getState(key common.Hash) common.Hash {
 	return rel.slotHashMap[key].storageChanges[key]
 }
 
+func (rel *relTrie) setState(storageRoot common.Hash, key common.Hash, val common.Hash) common.Hash {
+	// return storage
+	return common.Hash{}
+}
+
 // implements for evm StateDB
 // GetState(common.Address, common.Hash) common.Hash
-// 	SetState(common.Address, common.Hash, common.Hash)
+// SetState(common.Address, common.Hash, common.Hash)
 
 func newRelTrie(prealloc int) *relTrie {
 	rel := &relTrie{}

@@ -68,13 +68,9 @@ func BenchmarkListAdd(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		list := new(timestampTxList)
 		for _, v := range rand.Perm(len(txs)) {
-			list.Push(timestamptxitem(txs[v]))
+			list.Push(txToTimestampedItem(txs[v]))
 		}
 	}
-}
-
-func timestamptxitem(t *types.Transaction) *timestampTxItem {
-	return &timestampTxItem{tx: t, priority: t.Time().Unix()}
 }
 
 func transaction(timestamp int64, id common.Hash) *types.Transaction {

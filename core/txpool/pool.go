@@ -26,49 +26,56 @@ const (
 // If we aren't minter return error
 // If tx is already in pool return error
 type TxPool struct {
-	queuedTx  timestampTxList      // prioritized by tx timestamp queued transactions
-	pendingTx []*types.Transaction // currently processing transactions
-	mx        sync.Mutex           // held when tx pool lists get modified
+	queuedOrderedTx *timestampTxList     // prioritized by tx timestamp queued transactions //clients request go here
+	pendingTx       []*types.Transaction // currently processing transactions //minter requests only
+	mx              sync.Mutex           // held when tx pool lists get modified
 
 	// for readers
-	all     *lookup
+	all     map[common.Hash]*types.Transaction
 	pending map[common.Hash]*types.Transaction
 	queued  map[common.Hash]*types.Transaction
 }
 
-type lookup struct {
-	slots  int
-	lock   sync.RWMutex
-	locals map[common.Hash]*types.Transaction
+func (tp *TxPool) AddTx(tx *types.Transaction) error {
+	// prevalidate before mutex ??
+	tp.mx.Lock()
+	defer tp.mx.Unlock()
+	if tp.Get(tx.Hash()) != nil {
+		return ErrAlreadyKnown
+	}
+
+	tp.queued[tx.Hash()] = tx
+	tp.all[tx.Hash()] = tx
+	tp.queuedOrderedTx.Push(txToTimestampedItem(tx))
+
+	return nil
 }
 
-func (l *lookup) get(h common.Hash) *types.Transaction {
-	l.lock.Lock()
-	defer l.lock.Unlock()
-	return l.locals[h]
-}
-
-func (tp *TxPool) AddTxs(txs []*types.Transaction) {
-	//
-}
-
-func (tp *TxPool) add(tx *types.Transaction) {
-	tp.all.get(tx.Hash())
+func (tp *TxPool) Get(h common.Hash) *types.Transaction {
+	return tp.all[h]
 }
 
 func New() *TxPool {
-	return &TxPool{}
+	tp := &TxPool{
+		all:     make(map[common.Hash]*types.Transaction),
+		pending: make(map[common.Hash]*types.Transaction),
+		queued:  make(map[common.Hash]*types.Transaction),
+	}
+
+	tp.queuedOrderedTx = new(timestampTxList)
+	return tp
 }
 
 // Pendings returns transactions for processing
 // clears currentPending list
+// shpuld be executed only by minter
 func (tp *TxPool) Pending(blockSize int) []*types.Transaction {
 	tp.mx.Lock()
 	defer tp.mx.Unlock()
 	var counter int
 	tp.pendingTx = make([]*types.Transaction, 0, blockSize)
-	for tp.queuedTx.Len() > 0 {
-		tx := tp.queuedTx.Pop().(*timestampTxItem).tx
+	for tp.queuedOrderedTx.Len() > 0 {
+		tx := tp.queuedOrderedTx.Pop().(*timestampTxItem).tx
 		tp.pendingTx = append(tp.pendingTx, tx)
 		if counter == blockSize {
 			break
@@ -78,6 +85,10 @@ func (tp *TxPool) Pending(blockSize int) []*types.Transaction {
 	}
 
 	return tp.pendingTx
+}
+
+func txToTimestampedItem(t *types.Transaction) *timestampTxItem {
+	return &timestampTxItem{tx: t, priority: t.Time().Unix()}
 }
 
 func (tp *TxPool) Has(hash common.Hash) TxStatus {

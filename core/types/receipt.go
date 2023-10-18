@@ -134,8 +134,8 @@ func (rs Receipts) DeriveFields(hash common.Hash, number uint64, time uint64, tx
 		rs[i].TransactionIndex = uint(i)
 
 		// The contract address can be derived from the transaction itself
-		if (txs[i].To == common.Address{}) {
-			rs[i].ContractAddress = crypto.CreateAddress(txs[i].From, 0) // PEBBLETODO Here should be transactionID instead of 0. Only after changing create address logic in EVM
+		if txs[i].To() == nil {
+			rs[i].ContractAddress = crypto.CreateAddress(txs[i].From(), 0) // PEBBLETODO Here should be transactionID instead of 0. Only after changing create address logic in EVM
 		} else {
 			rs[i].ContractAddress = common.Address{}
 		}

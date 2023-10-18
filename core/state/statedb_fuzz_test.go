@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/big"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -57,20 +56,6 @@ type stateTest struct {
 // newStateTestAction creates a random action that changes state.
 func newStateTestAction(addr common.Address, r *rand.Rand, index int) testAction {
 	actions := []testAction{
-		{
-			name: "SetBalance",
-			fn: func(a testAction, s *StateDB) {
-				s.SetBalance(addr, big.NewInt(a.args[0]))
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "SetNonce",
-			fn: func(a testAction, s *StateDB) {
-				s.SetNonce(addr, uint64(a.args[0]))
-			},
-			args: make([]int64, 1),
-		},
 		{
 			name: "SetState",
 			fn: func(a testAction, s *StateDB) {

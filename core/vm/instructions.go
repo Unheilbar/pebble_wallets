@@ -258,10 +258,11 @@ func opAddress(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]
 }
 
 func opBalance(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	slot := scope.Stack.peek()
-	address := common.Address(slot.Bytes20())
-	slot.SetFromBig(interpreter.evm.StateDB.GetBalance(address))
-	return nil, nil
+	return nil, ErrOpcodeRemoveInPebble
+	// slot := scope.Stack.peek()
+	// address := common.Address(slot.Bytes20())
+	// slot.SetFromBig(interpreter.evm.StateDB.GetBalance(address))
+	// return nil, nil
 }
 
 func opOrigin(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
@@ -822,14 +823,14 @@ func opSelfdestruct(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 	if interpreter.readOnly {
 		return nil, ErrWriteProtection
 	}
-	beneficiary := scope.Stack.pop()
-	balance := interpreter.evm.StateDB.GetBalance(scope.Contract.Address())
-	interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
+	// beneficiary := scope.Stack.pop()
+	// balance := interpreter.evm.StateDB.GetBalance(scope.Contract.Address())
+	// interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
 	interpreter.evm.StateDB.SelfDestruct(scope.Contract.Address())
-	if tracer := interpreter.evm.Config.Tracer; tracer != nil {
-		tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
-		tracer.CaptureExit([]byte{}, 0, nil)
-	}
+	// if tracer := interpreter.evm.Config.Tracer; tracer != nil {
+	// 	tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
+	// 	tracer.CaptureExit([]byte{}, 0, nil)
+	// }
 	return nil, errStopToken
 }
 
@@ -837,15 +838,15 @@ func opSelfdestruct6780(pc *uint64, interpreter *EVMInterpreter, scope *ScopeCon
 	if interpreter.readOnly {
 		return nil, ErrWriteProtection
 	}
-	beneficiary := scope.Stack.pop()
-	balance := interpreter.evm.StateDB.GetBalance(scope.Contract.Address())
-	interpreter.evm.StateDB.SubBalance(scope.Contract.Address(), balance)
-	interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
+	// beneficiary := scope.Stack.pop()
+	// balance := interpreter.evm.StateDB.GetBalance(scope.Contract.Address())
+	// interpreter.evm.StateDB.SubBalance(scope.Contract.Address(), balance)
+	// interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
 	interpreter.evm.StateDB.Selfdestruct6780(scope.Contract.Address())
-	if tracer := interpreter.evm.Config.Tracer; tracer != nil {
-		tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
-		tracer.CaptureExit([]byte{}, 0, nil)
-	}
+	// if tracer := interpreter.evm.Config.Tracer; tracer != nil {
+	// 	tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
+	// 	tracer.CaptureExit([]byte{}, 0, nil)
+	// }
 	return nil, errStopToken
 }
 

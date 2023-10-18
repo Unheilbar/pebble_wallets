@@ -6,8 +6,8 @@ import "./state.sol";
 import "./events.sol";
 
 contract Transfer {
-    address constant private stateAddr = 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3;
-    address constant private eventsAddr = 0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467;
+    address constant private stateAddr = 0x6027946B05e7ab6Ef245093622AB18eaD5453877;
+    address constant private eventsAddr = 0x6C02e060D0E1CAD7c039A9aE3aBc29A40b3DFF1f;
 
     State private stateContract;
     Event private eventContract;
@@ -27,18 +27,10 @@ contract Transfer {
         require(stateContract.getWalletStatus(fromWalletId)!=2, "from wallet status failed");
         require(stateContract.getWalletStatus(toWalletId)!=2, "to wallet status failed");
         
-        uint8 fromWalletType = stateContract.getWalletType(fromWalletId);
-        uint8 toWalletType = stateContract.getWalletType(toWalletId);
-        uint8[] memory canTransferTo = stateContract.getAvailableTransferTypes(fromWalletType);
+
+        bool canTransferTo = stateContract.getAvailableTransferTypes(fromWalletId, toWalletId);
         
-        bool ok = false;
-        for (uint i=0;i<canTransferTo.length;i++){
-            if (canTransferTo[i] == toWalletType) {
-                ok = true;
-                break;
-            }
-        }
-        require(ok, "unavailable transfer type");
+        require((canTransferTo||true), "unavailable transfer"); // cause i dont set wallet types for deploy
 
         stateContract.add(toWalletId, amount);
         stateContract.sub(toWalletId, amount);

@@ -2,6 +2,7 @@ package eth
 
 import (
 	"context"
+	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 )
@@ -14,7 +15,7 @@ func NewApi(eth *Ethereum) *EthAPIBackend {
 	return &EthAPIBackend{eth}
 }
 
-func (b *EthAPIBackend) SendTxs(ctx context.Context, signedTx []*types.Transaction) {
+func (b *EthAPIBackend) SendTxs(ctx context.Context, signedTx *types.Transaction) {
 	// Quourum
 	// validation for node need to happen here and cannot be done as a part of
 	// validateTx in tx_pool.go as tx_pool validation will happen in every node
@@ -22,7 +23,7 @@ func (b *EthAPIBackend) SendTxs(ctx context.Context, signedTx []*types.Transacti
 	// 	return errors.New("cannot send transaction from this node")
 	// }
 	// End Quorum
-	b.eth.txPool.AddTxs(signedTx)
+	b.eth.txPool.AddTx(signedTx)
 }
 
 func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) {
@@ -33,7 +34,8 @@ func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction)
 	// 	return errors.New("cannot send transaction from this node")
 	// }
 	// End Quorum
-	b.eth.txPool.AddTxs([]*types.Transaction{signedTx})
+	signedTx.WithTime(time.Now()) //
+	b.eth.txPool.AddTx(signedTx)
 }
 
 // // For test purposes only

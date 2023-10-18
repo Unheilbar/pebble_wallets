@@ -12,7 +12,9 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/state"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/core/vm"
 	"github.com/Unheilbar/pebbke_wallets/trie"
+	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -27,18 +29,68 @@ type Blockchain struct {
 	currentBlock atomic.Pointer[types.Block] // Current head of the chain
 
 	chainmu sync.RWMutex // blockchain insertion lock
+
+	prefetcher Prefetcher //
 }
 
 type Processor interface {
 	Process(block types.Block, statedb *state.StateDB) []*types.Receipt
 }
 
+// Prefetcher is an interface for pre-caching transaction signatures and state.
+type Prefetcher interface {
+	// Prefetch processes the state changes according to the Ethereum rules by running
+	// the transaction messages using the statedb, but any changes are discarded. The
+	// only goal is to pre-cache transaction signatures and state trie nodes.
+	Prefetch(block *types.Block, statedb *state.StateDB, cfg vm.Config, interrupt *atomic.Bool)
+}
+
+type CacheConfig struct {
+	TrieCleanLimit      int           // Memory allowance (MB) to use for caching trie nodes in memory
+	TrieCleanNoPrefetch bool          // Whether to disable heuristic state prefetching for followup blocks
+	TrieDirtyLimit      int           // Memory limit (MB) at which to start flushing dirty trie nodes to disk
+	TrieDirtyDisabled   bool          // Whether to disable trie write caching and GC altogether (archive node)
+	TrieTimeLimit       time.Duration // Time limit after which to flush the current in-memory trie to disk
+	SnapshotLimit       int           // Memory allowance (MB) to use for caching snapshot entries in memory
+	Preimages           bool          // Whether to store preimage of trie key to the disk
+	StateHistory        uint64        // Number of blocks from head whose state histories are reserved.
+	StateScheme         string        // Scheme used to store ethereum states and merkle tree nodes on top
+
+	SnapshotNoBuild bool // Whether the background generation is allowed
+	SnapshotWait    bool // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
+}
+
+// defaultCacheConfig are the default caching values if none are specified by the
+// user (also used during testing).
+var defaultCacheConfig = &CacheConfig{
+	TrieCleanLimit: 256,
+	TrieDirtyLimit: 256,
+	TrieTimeLimit:  5 * time.Minute,
+	SnapshotLimit:  256,
+	SnapshotWait:   true,
+	StateScheme:    rawdb.HashScheme,
+}
+
+// triedbConfig derives the configures for trie database.
+func (c *CacheConfig) triedbConfig() *trie.Config {
+	config := &trie.Config{Preimages: c.Preimages}
+	if c.StateScheme == rawdb.HashScheme {
+		config.HashDB = &hashdb.Config{
+			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
+		}
+	}
+
+	return config
+}
+
 func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	bc := &Blockchain{
 		db: rdb,
 	}
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
 	// Open trie database with provided config
-	bc.triedb = trie.NewDatabase(rdb, trie.HashDefaults)
+	bc.triedb = trie.NewDatabase(rdb, defaultCacheConfig.triedbConfig())
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 
 	// TODO too dirty, just for test reasons
@@ -55,7 +107,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	receipt := receipts[0]
 	contrAddr := receipt.ContractAddress
 
-	newRoot, err := statedb.Commit(uint64(blockID), true)
+	newRoot, err := statedb.Commit(uint64(blockID), false)
 	if err != nil {
 		log.Fatal("err commit sb deploy", err)
 	}
@@ -93,7 +145,7 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	check := state.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
+	check := state.GetCode(common.HexToAddress("0x6027946B05e7ab6Ef245093622AB18eaD5453877"))
 	if check == nil {
 		panic("precheck failed")
 	}
@@ -106,17 +158,24 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 	if err != nil {
 		panic(err)
 	}
-	check = state.GetCode(common.HexToAddress("0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3"))
+	check = state.GetCode(common.HexToAddress("0x6027946B05e7ab6Ef245093622AB18eaD5453877"))
 	if check == nil {
 		panic("check failed")
 	}
 	return nil
 }
 
+func getSpeed(txes int, interval time.Duration) float64 {
+	return float64(txes) / interval.Seconds()
+}
+
 func (bc *Blockchain) InsertChain(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	return bc.writeBlockAndSetHead(block)
+	elapsed := time.Since(time.Unix(0, int64(block.Time())))
+	err := bc.writeBlockAndSetHead(block)
+	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(block.Transactions), getSpeed(len(block.Transactions), elapsed), "tx/s ")
+	return err
 }
 
 func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.StateDB) error {
@@ -165,7 +224,7 @@ func (bc *Blockchain) writeHeadBlock(block *types.Block) {
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 	rawdb.WriteHeadFastBlockHash(batch, block.Hash())
 	rawdb.WriteCanonicalHash(batch, block.Hash(), block.NumberU64())
-	// rawdb.WriteTxLookupEntriesByBlock(batch, block) TODO cant write lookup because no compatibility
+	rawdb.WriteTxLookupEntriesByBlock(batch, block)
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 
 	// Flush the whole batch into the disk, exit the node if failed
@@ -178,10 +237,10 @@ func (bc *Blockchain) CurrentBlock() *types.Block {
 	return bc.currentBlock.Load()
 }
 
+// only for stess minter tests PEBBLE REMOVE LATER
 func getContractDeployTX(contrCode []byte) *types.Transaction {
-	return &types.Transaction{
-		From:  common.Address{},
-		To:    common.Address{},
-		Input: contrCode,
-	}
+	return types.NewTx(types.TxData{
+		From: common.Address{},
+		Data: contrCode,
+	})
 }

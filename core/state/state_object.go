@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math/big"
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
@@ -93,7 +92,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, types.EmptyCodeHash.Bytes())
+	return bytes.Equal(s.data.CodeHash, types.EmptyCodeHash.Bytes())
 }
 
 // newObject creates a state object.
@@ -399,41 +398,6 @@ func (s *stateObject) commit() (*trienode.NodeSet, error) {
 	return nodes, nil
 }
 
-// AddBalance adds amount to s's balance.
-// It is used to add funds to the destination account of a transfer.
-func (s *stateObject) AddBalance(amount *big.Int) {
-	// EIP161: We must check emptiness for the objects such that the account
-	// clearing (0,0,0 objects) can take effect.
-	if amount.Sign() == 0 {
-		if s.empty() {
-			s.touch()
-		}
-		return
-	}
-	s.SetBalance(new(big.Int).Add(s.Balance(), amount))
-}
-
-// SubBalance removes amount from s's balance.
-// It is used to remove funds from the origin account of a transfer.
-func (s *stateObject) SubBalance(amount *big.Int) {
-	if amount.Sign() == 0 {
-		return
-	}
-	s.SetBalance(new(big.Int).Sub(s.Balance(), amount))
-}
-
-func (s *stateObject) SetBalance(amount *big.Int) {
-	s.db.journal.append(balanceChange{
-		account: &s.address,
-		prev:    new(big.Int).Set(s.data.Balance),
-	})
-	s.setBalance(amount)
-}
-
-func (s *stateObject) setBalance(amount *big.Int) {
-	s.data.Balance = amount
-}
-
 func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	obj := &stateObject{
 		db:       db,
@@ -513,28 +477,8 @@ func (s *stateObject) setCode(codeHash common.Hash, code []byte) {
 	s.dirtyCode = true
 }
 
-func (s *stateObject) SetNonce(nonce uint64) {
-	s.db.journal.append(nonceChange{
-		account: &s.address,
-		prev:    s.data.Nonce,
-	})
-	s.setNonce(nonce)
-}
-
-func (s *stateObject) setNonce(nonce uint64) {
-	s.data.Nonce = nonce
-}
-
 func (s *stateObject) CodeHash() []byte {
 	return s.data.CodeHash
-}
-
-func (s *stateObject) Balance() *big.Int {
-	return s.data.Balance
-}
-
-func (s *stateObject) Nonce() uint64 {
-	return s.data.Nonce
 }
 
 func (s *stateObject) Root() common.Hash {

@@ -9,10 +9,12 @@ contract State {
     mapping (bytes32 => uint256) monthAmounts;
     mapping (bytes32 => uint8) walletStatusMap;
     mapping (bytes32 => uint8) walletTypesMap;
-    mapping (uint8 => uint8[]) walletAvailableTransferTypes;
+    mapping (bytes32 => bool) walletAvailableTransferTypes;
 
+    // user with walletType 0 can transfer to user with wallet types 1 and 2 which is abi encoded 0x0000000000000000000000000000000000000000000000000000000000000001;
     constructor() {
-        walletAvailableTransferTypes[0].push(0);
+        // first 16 bytes encode fromWallet, last 16 bytes toWallet
+        walletAvailableTransferTypes[0x0000000000000000000000000000000000100000000000000000000000000001]=true;
     }
 
     function add(bytes32 walletId, uint256 amount) public innerCall {
@@ -52,8 +54,16 @@ contract State {
         return walletTypesMap[walletId];
     }
 
-    function getAvailableTransferTypes (uint8 walletType) external view returns(uint8[] memory) {
-        return walletAvailableTransferTypes[walletType];
+     function getWalletStatusI(bytes32 walletId) internal view returns(uint8) {
+        return walletStatusMap[walletId];
+    }
+
+    function getWalletTypeI(bytes32 walletId) internal view returns(uint8) {
+        return walletTypesMap[walletId];
+    }
+
+    function getAvailableTransferTypes (bytes32 fromWalletId, bytes32 toWalletId) external view returns(bool) {
+        return walletAvailableTransferTypes[keccak256(abi.encodePacked(getWalletTypeI(fromWalletId), getWalletTypeI(toWalletId)))];
     }
 
     modifier innerCall virtual{

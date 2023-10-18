@@ -30,4 +30,5 @@ stress-minter:
 	rm -rf chaindb
 	rm -rf chaindb_1 chaindb_2 firstRaftNode secondRaftNode
 	rm -rf logs/*
-	go test -v -run 'Test__RunStressMinter' tests/*.go
+	# rm mem.prof
+	go test -v -cpuprofile cpu.prof -run 'Test__RunStressMinter' tests/*.go -timeout 99999s

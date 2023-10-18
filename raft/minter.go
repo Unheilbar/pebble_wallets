@@ -116,7 +116,7 @@ func (minter *minter) mintNewBlock() {
 	txCount := len(committedTxes)
 
 	if txCount == 0 {
-		log.Print("Not minting a new block since there are no pending transactions")
+		// log.Print("Not minting a new block since there are no pending transactions")
 		return
 	}
 
@@ -127,18 +127,20 @@ func (minter *minter) mintNewBlock() {
 	// update block hash since it is now available, but was not when the
 	// receipt/log of individual transactions were created:
 	headerHash := header.Hash()
+	var logs int
 	for _, r := range receipts {
 		if r.Logs != nil {
 			for _, l := range r.Logs {
 				l.BlockHash = headerHash
 				l.TxHash = r.TxHash
+				logs++
 			}
 		}
 	}
 
 	block := types.NewBlock(header, committedTxes, receipts, trie.NewStackTrie(nil))
 
-	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount)
+	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount, "len logs", logs)
 
 	if err := minter.chain.CommitBlockWithState(header.Number.Uint64(), work.publicState); err != nil {
 		panic(err)
@@ -155,10 +157,6 @@ func (minter *minter) mintNewBlock() {
 	minter.proposeBlockC <- block
 }
 
-func getSpeed(txes int, interval time.Duration) float64 {
-	return float64(txes) / interval.Seconds()
-}
-
 func (env *work) commitTransactions(txs []*types.Transaction, bc *core.Blockchain) (types.Transactions, types.Receipts) {
 	// commit transactions
 	txes, receipts, _ := core.ApplyTransactions(bc, env.publicState, env.header, txs) // TODO probably won't be any errors here, since we dont control signal interrupt yet
@@ -167,8 +165,6 @@ func (env *work) commitTransactions(txs []*types.Transaction, bc *core.Blockchai
 
 	return txes, receipts
 }
-
-const maxBlockSize = 1000
 
 func (minter *minter) getTransactions() []*types.Transaction {
 	return minter.eth.TxPool().Pending(maxBlockSize)
@@ -188,6 +184,8 @@ func (minter *minter) mintingLoop() {
 	}
 }
 
+const maxBlockSize = 300
+
 func (minter *minter) eventLoop() {
 	for {
 		select {
@@ -195,7 +193,7 @@ func (minter *minter) eventLoop() {
 			if atomic.LoadInt32(&minter.minting) == 1 {
 				minter.requestMinting()
 			}
-		case <-time.After(time.Second):
+		case <-time.After(time.Millisecond * 50):
 			if atomic.LoadInt32(&minter.minting) == 1 {
 				minter.requestMinting()
 			}

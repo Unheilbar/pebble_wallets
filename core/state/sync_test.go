@@ -57,12 +57,6 @@ func makeTestState(scheme string) (ethdb.Database, Database, *trie.Database, com
 		obj := state.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
 		acc := &testAccount{address: common.BytesToAddress([]byte{i})}
 
-		obj.AddBalance(big.NewInt(int64(11 * i)))
-		acc.balance = big.NewInt(int64(11 * i))
-
-		obj.SetNonce(uint64(42 * i))
-		acc.nonce = uint64(42 * i)
-
 		if i%3 == 0 {
 			obj.SetCode(crypto.Keccak256Hash([]byte{i, i, i, i, i}), []byte{i, i, i, i, i})
 			acc.code = []byte{i, i, i, i, i}
@@ -95,12 +89,6 @@ func checkStateAccounts(t *testing.T, db ethdb.Database, scheme string, root com
 		t.Fatalf("inconsistent state trie at %x: %v", root, err)
 	}
 	for i, acc := range accounts {
-		if balance := state.GetBalance(acc.address); balance.Cmp(acc.balance) != 0 {
-			t.Errorf("account %d: balance mismatch: have %v, want %v", i, balance, acc.balance)
-		}
-		if nonce := state.GetNonce(acc.address); nonce != acc.nonce {
-			t.Errorf("account %d: nonce mismatch: have %v, want %v", i, nonce, acc.nonce)
-		}
 		if code := state.GetCode(acc.address); !bytes.Equal(code, acc.code) {
 			t.Errorf("account %d: code mismatch: have %x, want %x", i, code, acc.code)
 		}

@@ -72,9 +72,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	var (
 		msg              = st.tx
-		sender           = vm.AccountRef(msg.From)
+		sender           = vm.AccountRef(msg.From())
 		rules            = st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, st.evm.Context.Random != nil, st.evm.Context.Time)
-		contractCreation = msg.To == common.Address{}
+		contractCreation = msg.To() == nil
 	)
 
 	if !contractCreation {
@@ -83,7 +83,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		}
 	}
 
-	st.state.Prepare(rules, msg.From, st.evm.Context.Coinbase, &msg.To, vm.ActivePrecompiles(rules), nil) //TODO Later add access list to Transaction
+	st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), vm.ActivePrecompiles(rules), nil) //TODO Later add access list to Transaction
 
 	var (
 		ret       []byte
@@ -92,9 +92,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		remainGas uint64 = math.MaxUint64 // gas never ends
 	)
 	if contractCreation {
-		ret, _, _, vmerr = st.evm.Create(sender, msg.Input, math.MaxUint64, value)
+		ret, _, _, vmerr = st.evm.Create(sender, msg.Data(), math.MaxUint64, value)
 
-		contractAddr := crypto.CreateAddress(sender.Address(), st.evm.StateDB.GetNonce(sender.Address())-1) // hack because we form contract address not with nonce
+		contractAddr := crypto.CreateAddress(sender.Address(), 1) // hack because we form contract address not with nonce
 		check := st.evm.StateDB.GetCode(contractAddr)
 		if check == nil {
 			panic("evm create code err")
@@ -102,7 +102,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	} else {
 		// Increment the nonce for the next transaction
 		// st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1) add unique tx ID to states
-		ret, _, vmerr = st.evm.Call(sender, st.to(), msg.Input, remainGas, value)
+		ret, _, vmerr = st.evm.Call(sender, *st.tx.To(), msg.Data(), remainGas, value)
 	}
 
 	return &ExecutionResult{
@@ -111,22 +111,15 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}, nil
 }
 
-// to returns the recipient of the message.
-func (st *StateTransition) to() common.Address {
-	if st.tx == nil {
-		return common.Address{}
-	}
-	return st.tx.To
-}
 func (st *StateTransition) preCheck() error {
 	msg := st.tx
-	sigPublicKey, err := crypto.Ecrecover(st.tx.Hash().Bytes(), msg.Signature)
+	sigPublicKey, err := crypto.Ecrecover(st.tx.Hash().Bytes(), msg.Signature())
 	if err != nil {
 		return err
 	}
 	var addr common.Address
 	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
-	if !bytes.Equal(addr.Bytes(), st.tx.From.Bytes()) {
+	if !bytes.Equal(addr.Bytes(), st.tx.From().Bytes()) {
 		return fmt.Errorf("invalid signature")
 	}
 

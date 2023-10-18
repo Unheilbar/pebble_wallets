@@ -7,8 +7,8 @@ import "./transfer.sol";
 
 
 contract Proxy {
-    address constant private stateAddr = 0x1aEa632C29D2978A5C6336A3B8BFE9d737EB8fE3;
-    address constant private transferAddr = 0x98aCaC3B9c77c934C12780a2852A959E674970A3;
+    address constant private stateAddr = 0x6027946B05e7ab6Ef245093622AB18eaD5453877;
+    address constant private transferAddr = 0x5dBC355B93DD7A0C0D759Fd6a7859d2610219221;
 
     Transfer private transferContract;
     State private stateContract;
@@ -18,9 +18,9 @@ contract Proxy {
         transferContract = Transfer(transferAddr);
    }
 
-    function emission(bytes32 walletId, uint256 amount) external {
+    function emission(address senderId, bytes32 walletId, uint256 amount) external {
         stateContract.add(walletId, amount);
-        stateContract.setSender(msg.sender, walletId);
+        stateContract.setSender(senderId, walletId);
     }
 
     function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) external{

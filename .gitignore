@@ -2,7 +2,12 @@ main
 testdb
 chaindb
 logs
+
 firstRaftNode
 secondRaftNode
 chaindb_1
 chaindb_2
+
+mem.prof
+tests.test
+

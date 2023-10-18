@@ -323,6 +323,10 @@ func (n *raftNode) eventLoop() {
 	}
 }
 
+func getSpeed(committedTxes int, elapsed time.Duration) float64 {
+	return float64(committedTxes) / elapsed.Seconds()
+}
+
 func (n *raftNode) rawNode() etcdRaft.Node {
 	for n.unsafeRawNode == nil {
 		time.Sleep(100 * time.Millisecond)

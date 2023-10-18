@@ -140,7 +140,7 @@ func (minter *minter) mintNewBlock() {
 
 	block := types.NewBlock(header, committedTxes, receipts, trie.NewStackTrie(nil))
 
-	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount, "len logs", logs)
+	log.Println("Generated next block", "block num", block.Number(), " num txes ", txCount, "len logs", logs, "root", header.Root)
 
 	if err := minter.chain.CommitBlockWithState(header.Number.Uint64(), work.publicState); err != nil {
 		panic(err)

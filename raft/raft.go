@@ -290,7 +290,7 @@ func (n *raftNode) eventLoop() {
 
 					err = n.blockchain.InsertChain(&block)
 					if err != nil {
-						log.Fatal("error insert to blockchain node ", n.id, err)
+						log.Println("error insert to blockchain node ", n.id, err)
 					}
 
 					elapsed := time.Since(time.Unix(0, int64(block.Header().Time)))

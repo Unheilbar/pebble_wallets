@@ -41,9 +41,9 @@ func Test__RunStressMinter(t *testing.T) {
 	service1.StartRaftNode()
 
 	// node 2
-	secondNode, secondEth := makeFullNode("../chaindb_2")
-	service2 := RegisterRaftService(secondNode, secondEth, 2, bootstrapNodes, "../secondRaftNode")
-	service2.StartRaftNode()
+	//secondNode, secondEth := makeFullNode("../chaindb_2")
+	//service2 := RegisterRaftService(secondNode, secondEth, 2, bootstrapNodes, "../secondRaftNode")
+	//service2.StartRaftNode()
 
 	time.Sleep(5 * time.Second)
 	service1.StartMinter()

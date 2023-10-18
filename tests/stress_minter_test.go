@@ -69,8 +69,8 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum, raftId uint16, bootstrap
 	return service
 }
 
-var minterStressWalletsAmount = 10   // 1000 wallets sounds good for a transaction
-var minterStressTransfersAmount = 10 // 10 million transactions
+var minterStressWalletsAmount = 10000     // 1000 wallets sounds good for a transaction
+var minterStressTransfersAmount = 1000000 // 10 million transactions
 
 func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	var tester chad.Chad
@@ -78,12 +78,12 @@ func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	defaultDeployHash := crypto.Keccak256Hash([]byte("eventually will have to change it"))
 	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(3).Address, common.Hex2Bytes(binding.StateMetaData.Bin[2:]), defaultDeployHash))
 	time.Sleep(time.Second * 2) // wait to apply
-	// api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(4).Address, common.Hex2Bytes(binding.EventsMetaData.Bin[2:]), defaultDeployHash))
-	// time.Sleep(time.Second * 2) // wait to apply
-	// api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(5).Address, common.Hex2Bytes(binding.TransferMetaData.Bin[2:]), defaultDeployHash))
-	// time.Sleep(time.Second * 2) // wait to apply
-	// api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(6).Address, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:]), defaultDeployHash))
-	// time.Sleep(time.Second * 2) // wait for tx to apply
+	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(4).Address, common.Hex2Bytes(binding.EventsMetaData.Bin[2:]), defaultDeployHash))
+	//time.Sleep(time.Second * 2) // wait to apply
+	//api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(5).Address, common.Hex2Bytes(binding.TransferMetaData.Bin[2:]), defaultDeployHash))
+	time.Sleep(time.Second * 2) // wait to apply
+	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(6).Address, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:]), defaultDeployHash))
+	time.Sleep(time.Second * 2) // wait for tx to apply
 	var State = crypto.CreateAddress(tester.GetTestAccByID(3).Address, 0)
 	var Transfer = crypto.CreateAddress(tester.GetTestAccByID(5).Address, 1)
 	var Event = crypto.CreateAddress(tester.GetTestAccByID(4).Address, 1)
@@ -104,5 +104,6 @@ func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	fmt.Println("Generated transaction count", len(transfers))
 	for _, t := range transfers {
 		api.SendTxs(context.Background(), t)
+		break
 	}
 }

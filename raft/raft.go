@@ -228,6 +228,7 @@ func (n *raftNode) serveLocalProposals() {
 	for {
 		select {
 		case block, ok := <-n.blockProposalC:
+			log.Println("transaction ", block.Transactions[0].Hash())
 			log.Println("serve local block", block.Number().Int64())
 
 			if !ok {
@@ -286,6 +287,8 @@ func (n *raftNode) eventLoop() {
 					if err != nil {
 						log.Println("error decoding block err", err)
 					}
+
+					log.Println("insert transaction hash", block.Transactions[0].Hash())
 
 					err = n.blockchain.InsertChain(&block, n.id)
 					if err != nil {

@@ -165,16 +165,9 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 	return nil
 }
 
-func getSpeed(txes int, interval time.Duration) float64 {
-	return float64(txes) / interval.Seconds()
-}
-
 func (bc *Blockchain) InsertChain(block *types.Block, id int) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	if block.Transactions == nil {
-		log.Fatal("ti dolboeb	")
-	}
 	fmt.Println("nodeId", id, "blockHash", block.Hash())
 	fmt.Println("nodeId", id, "txHash", block.Transactions[0].Hash())
 	if bc.CurrentBlock().NumberU64() > block.NumberU64() {
@@ -190,11 +183,9 @@ func (bc *Blockchain) InsertChain(block *types.Block, id int) error {
 	}
 	receipts := bc.processor.Process(block, statedb, id)
 	fmt.Println("nodeId", id, "receiptHash", receipts[0].TxHash)
-	elapsed := time.Since(time.Unix(0, int64(block.Time())))
 	newHash, err := statedb.Commit(block.NumberU64(), true)
 	fmt.Println("nodeId", id, "new state root after process ", newHash)
 	err = bc.writeBlockAndSetHead(block, id)
-	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(block.Transactions), getSpeed(len(block.Transactions), elapsed), "tx/s ")
 	return err
 }
 

@@ -13,7 +13,7 @@ import (
 
 type TxData struct {
 	From      common.Address
-	To        *common.Address
+	To        *common.Address `rlp:"nil"` // nil means contract creation
 	Id        common.Hash
 	Signature []byte
 	Data      []byte

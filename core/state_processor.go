@@ -26,16 +26,16 @@ func NewStateProcessor() *StateProcessor {
 	return &StateProcessor{}
 }
 
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB) []*types.Receipt {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, id int) []*types.Receipt {
 	var (
 		receipts    []*types.Receipt
 		blockHash   = block.Hash()
 		blockNumber = block.Number()
 	)
-
 	evm := vm.NewEVM(NewEVMBlockContext(block.Header()), vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 
 	for i, tx := range block.Transactions {
+		fmt.Println("process: tx ", tx.Hash(), "block", block.Hash(), "node id", id, "block number", blockNumber)
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := p.applyTransaction(tx, statedb, blockNumber, blockHash, evm)
 		if err != nil {
@@ -45,6 +45,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB) []*
 		receipts = append(receipts, receipt)
 	}
 
+	fmt.Println("process final root", statedb.IntermediateRoot(true), "block", blockHash, "node id", id)
 	return receipts
 }
 
@@ -103,6 +104,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 	blockNumber := header.Number
 	txCount := 0
 	for _, tx := range txs {
+		fmt.Println("transition tx hash ", tx.Hash(), "blockHash", blockHash)
 		blockCtx := NewEVMBlockContext(header)
 		// PEBBLE we use cancun by default
 		evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
@@ -147,7 +149,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 
 		receipts = append(receipts, receipt)
 	}
-
+	fmt.Println("transition final root ", statedb.IntermediateRoot(true), "blockHash", blockHash)
 	return appliedTxs, receipts, nil
 }
 

@@ -98,7 +98,7 @@ func (minter *minter) createWork() *work {
 	if err != nil {
 		panic(fmt.Sprint("failed to get parent state: ", err))
 	}
-
+	fmt.Println("minter blockNumber", newBlockNumber, "apply on top", parent.Root())
 	return &work{
 		publicState: publicState,
 		header:      header,
@@ -108,9 +108,11 @@ func (minter *minter) createWork() *work {
 func (minter *minter) mintNewBlock() {
 	minter.mu.Lock()
 	defer minter.mu.Unlock()
-
-	work := minter.createWork()
 	transactions := minter.getTransactions()
+	if len(transactions) == 0 {
+		return
+	}
+	work := minter.createWork()
 
 	committedTxes, receipts := work.commitTransactions(transactions, minter.chain)
 	txCount := len(committedTxes)

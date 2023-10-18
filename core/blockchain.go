@@ -34,7 +34,7 @@ type Blockchain struct {
 }
 
 type Processor interface {
-	Process(block *types.Block, statedb *state.StateDB) []*types.Receipt
+	Process(block *types.Block, statedb *state.StateDB, id int) []*types.Receipt
 }
 
 // Prefetcher is an interface for pre-caching transaction signatures and state.
@@ -99,11 +99,12 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 
 	block := types.NewBlockWithHeader(&types.Header{
 		Number: big.NewInt(blockID),
+		Root:   common.HexToHash("0x1f80307fe9d4108f3f52858a41bec5527376557341338ff6a90248005ff8f2a2"),
 	})
 	block.Transactions = []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))}
 	statedb, err := state.New(common.Hash{}, bc.stateCache, nil)
 	stProcessor := NewStateProcessor()
-	receipts := stProcessor.Process(block, statedb)
+	receipts := stProcessor.Process(block, statedb, -1)
 	receipt := receipts[0]
 	contrAddr := receipt.ContractAddress
 
@@ -112,7 +113,6 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 		log.Fatal("err commit sb deploy", err)
 	}
 
-	block.Header().Root = newRoot
 	bc.currentBlock.Store(block)
 	err = bc.stateCache.TrieDB().Commit(newRoot, false)
 	if err != nil {
@@ -126,7 +126,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	if code == nil {
 		panic("err create blockchain")
 	}
-	log.Println("test storage addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime))
+	log.Println("test storage addr", contrAddr, receipt.Status, "root", newRoot, "time", time.Since(deployStartTime), "block", block.Hash())
 	return bc
 }
 
@@ -169,23 +169,31 @@ func getSpeed(txes int, interval time.Duration) float64 {
 	return float64(txes) / interval.Seconds()
 }
 
-func (bc *Blockchain) InsertChain(block *types.Block) error {
+func (bc *Blockchain) InsertChain(block *types.Block, id int) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	if bc.CurrentBlock().NumberU64() > bc.CurrentBlock().NumberU64() {
+	if block.Transactions == nil {
+		log.Fatal("ti dolboeb	")
+	}
+	fmt.Println("nodeId", id, "blockHash", block.Hash())
+	fmt.Println("nodeId", id, "txHash", block.Transactions[0].Hash())
+	if bc.CurrentBlock().NumberU64() > block.NumberU64() {
 		log.Println("attem to insert already known block")
 		return nil
 	}
 	parent := bc.CurrentBlock().Header()
-	statedb, err := state.New(parent.Root, bc.stateCache, nil)
+	fmt.Println("nodeId", id, "headerRoot", block.Header().Root)
+	fmt.Println("nodeId", id, "parentRoot", parent.Root)
+	statedb, err := bc.StateAt(parent.Root)
 	if err != nil {
 		panic(fmt.Sprintf("failed to get state at %s", block.Header().ParentHash))
 	}
-	_ = bc.processor.Process(block, statedb)
+	receipts := bc.processor.Process(block, statedb, id)
+	fmt.Println("nodeId", id, "receiptHash", receipts[0].TxHash)
 	elapsed := time.Since(time.Unix(0, int64(block.Time())))
 	newHash, err := statedb.Commit(block.NumberU64(), true)
-	fmt.Println("new state root after [rpcess ", newHash)
-	err = bc.writeBlockAndSetHead(block)
+	fmt.Println("nodeId", id, "new state root after process ", newHash)
+	err = bc.writeBlockAndSetHead(block, id)
 	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(block.Transactions), getSpeed(len(block.Transactions), elapsed), "tx/s ")
 	return err
 }
@@ -217,9 +225,10 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 
 // writeBlockAndSetHead is the internal implementation of WriteBlockAndSetHead.
 // This function expects the chain mutex to be held.
-func (bc *Blockchain) writeBlockAndSetHead(block *types.Block) error {
+func (bc *Blockchain) writeBlockAndSetHead(block *types.Block, id int) error {
 	state, err := bc.StateAt(block.Root())
-	log.Println("reqiested state at", block.Root(), err, block.Number())
+
+	fmt.Println("requested state at", block.Root(), err, block.Number(), id)
 	if err != nil {
 		return err
 	}

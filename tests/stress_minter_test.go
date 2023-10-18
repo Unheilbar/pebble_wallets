@@ -78,12 +78,12 @@ func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	defaultDeployHash := crypto.Keccak256Hash([]byte("eventually will have to change it"))
 	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(3).Address, common.Hex2Bytes(binding.StateMetaData.Bin[2:]), defaultDeployHash))
 	time.Sleep(time.Second * 2) // wait to apply
-	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(4).Address, common.Hex2Bytes(binding.EventsMetaData.Bin[2:]), defaultDeployHash))
-	time.Sleep(time.Second * 2) // wait to apply
-	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(5).Address, common.Hex2Bytes(binding.TransferMetaData.Bin[2:]), defaultDeployHash))
-	time.Sleep(time.Second * 2) // wait to apply
-	api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(6).Address, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:]), defaultDeployHash))
-	time.Sleep(time.Second * 2) // wait for tx to apply
+	// api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(4).Address, common.Hex2Bytes(binding.EventsMetaData.Bin[2:]), defaultDeployHash))
+	// time.Sleep(time.Second * 2) // wait to apply
+	// api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(5).Address, common.Hex2Bytes(binding.TransferMetaData.Bin[2:]), defaultDeployHash))
+	// time.Sleep(time.Second * 2) // wait to apply
+	// api.SendTx(context.Background(), tester.GetContractDeployTX(tester.GetTestAccByID(6).Address, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:]), defaultDeployHash))
+	// time.Sleep(time.Second * 2) // wait for tx to apply
 	var State = crypto.CreateAddress(tester.GetTestAccByID(3).Address, 0)
 	var Transfer = crypto.CreateAddress(tester.GetTestAccByID(5).Address, 1)
 	var Event = crypto.CreateAddress(tester.GetTestAccByID(4).Address, 1)

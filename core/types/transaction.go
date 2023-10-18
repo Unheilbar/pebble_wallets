@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +27,7 @@ type Transaction struct {
 
 	// caches
 	hash atomic.Value
+	size atomic.Value
 }
 
 func (tx *Transaction) Signature() []byte {
@@ -33,6 +36,34 @@ func (tx *Transaction) Signature() []byte {
 
 func (tx *Transaction) Data() []byte {
 	return tx.inner.Data
+}
+
+func (tx *Transaction) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, tx.inner)
+
+}
+
+var errShortTypedTx = errors.New("typed transaction too short")
+
+// DecodeRLP implements rlp.Decoder
+func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
+	kind, size, err := s.Kind()
+	switch {
+	case err != nil:
+		return err
+	case kind == rlp.List:
+		// It's a legacy transaction.
+		var inner TxData
+		err := s.Decode(&inner)
+		if err == nil {
+			tx.setDecoded(&inner, rlp.ListSize(size))
+		}
+		return err
+	case kind == rlp.Byte:
+		return errShortTypedTx
+
+	}
+	return nil
 }
 
 func (tx *Transaction) Hash() common.Hash {
@@ -51,7 +82,8 @@ func (tx *Transaction) Hash() common.Hash {
 // NewTx creates a new transaction.
 func NewTx(inner TxData) *Transaction {
 	tx := new(Transaction)
-	tx.setDecoded(inner.copy())
+	copy := inner.copy() // TODO think of something better PEBBLE
+	tx.setDecoded(&copy, 0)
 	return tx
 }
 
@@ -88,9 +120,10 @@ func copyAddressPtr(a *common.Address) *common.Address {
 }
 
 // setDecoded sets the inner transaction and size after decoding.
-func (tx *Transaction) setDecoded(inner TxData) {
-	tx.inner = inner
+func (tx *Transaction) setDecoded(inner *TxData, size uint64) {
+	tx.inner = *inner
 	tx.time = time.Now()
+	tx.size.Store(size)
 }
 
 // Transactions implements DerivableList for transactions.

@@ -17,6 +17,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 
 	"github.com/Unheilbar/pebbke_wallets/core"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -234,14 +235,11 @@ func (n *raftNode) serveLocalProposals() {
 				return
 			}
 
-			size, r, err := rlp.EncodeToReader(block)
+			buffer, err := rlp.EncodeToBytes(block)
 			if err != nil {
 				panic(fmt.Sprintf("error: failed to send RLP-encoded block: %s", err.Error()))
 			}
-
-			var buffer = make([]byte, uint32(size))
-			r.Read(buffer)
-
+			log.Println("entry data propose nodeid", n.id, crypto.Keccak256Hash(buffer))
 			// blocks until accepted by the raft state machine
 			err = n.rawNode().Propose(context.Background(), buffer)
 			if err != nil {
@@ -284,12 +282,15 @@ func (n *raftNode) eventLoop() {
 
 					var block types.Block
 					err := rlp.DecodeBytes(entry.Data, &block)
+					log.Println("entry data nodeid", n.id, crypto.Keccak256Hash(entry.Data))
 					if err != nil {
 						log.Println("error decoding block err", err)
 					}
 
-					err = n.blockchain.InsertChain(&block)
+					err = n.blockchain.InsertChain(&block, n.id)
 					if err != nil {
+						time.Sleep(time.Second * 3)
+						n.transport.Stop()
 						log.Fatal("error insert to blockchain node ", n.id, err)
 					}
 

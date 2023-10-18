@@ -13,6 +13,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/vm"
 
 	// "github.com/Unheilbar/pebbke_wallets/core/vm/runtime"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -25,7 +26,7 @@ func NewStateProcessor() *StateProcessor {
 	return &StateProcessor{}
 }
 
-func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*types.Receipt {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB) []*types.Receipt {
 	var (
 		receipts    []*types.Receipt
 		blockHash   = block.Hash()
@@ -40,6 +41,7 @@ func (p *StateProcessor) Process(block types.Block, statedb *state.StateDB) []*t
 		if err != nil {
 			log.Fatal("couldn't aply transaction") //TODO if precheck tx fail (Signature, tx uniqueness etc..)
 		}
+		statedb.Finalise(true)
 		receipts = append(receipts, receipt)
 	}
 
@@ -65,7 +67,6 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 		_, _, vmerr = evm.Call(sender, common.Address{}, tx.Data(), math.MaxUint64, new(big.Int))
 	}
 
-	statedb.Finalise(true)
 	receipt := &types.Receipt{}
 
 	if vmerr != nil {
@@ -139,7 +140,8 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipt.TransactionIndex = uint(statedb.TxIndex())
 		revertReason := result.Revert()
 		if revertReason != nil {
-			fmt.Println("revert reason", revertReason)
+			r, _ := abi.UnpackRevert(revertReason)
+			fmt.Println("revert reason", r)
 			receipt.RevertReason = revertReason
 		}
 

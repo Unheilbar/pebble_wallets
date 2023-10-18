@@ -34,7 +34,7 @@ type Blockchain struct {
 }
 
 type Processor interface {
-	Process(block types.Block, statedb *state.StateDB) []*types.Receipt
+	Process(block *types.Block, statedb *state.StateDB) []*types.Receipt
 }
 
 // Prefetcher is an interface for pre-caching transaction signatures and state.
@@ -92,7 +92,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	// Open trie database with provided config
 	bc.triedb = trie.NewDatabase(rdb, defaultCacheConfig.triedbConfig())
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
-
+	bc.processor = NewStateProcessor()
 	// TODO too dirty, just for test reasons
 	var blockID int64 = 1
 	deployStartTime := time.Now()
@@ -103,7 +103,7 @@ func NewBlockchain(rdb ethdb.Database) *Blockchain {
 	block.Transactions = []*types.Transaction{getContractDeployTX(common.Hex2Bytes(binding.StorageMetaData.Bin[2:]))}
 	statedb, err := state.New(common.Hash{}, bc.stateCache, nil)
 	stProcessor := NewStateProcessor()
-	receipts := stProcessor.Process(*block, statedb)
+	receipts := stProcessor.Process(block, statedb)
 	receipt := receipts[0]
 	contrAddr := receipt.ContractAddress
 
@@ -172,8 +172,20 @@ func getSpeed(txes int, interval time.Duration) float64 {
 func (bc *Blockchain) InsertChain(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
+	if bc.CurrentBlock().NumberU64() > bc.CurrentBlock().NumberU64() {
+		log.Println("attem to insert already known block")
+		return nil
+	}
+	parent := bc.CurrentBlock().Header()
+	statedb, err := state.New(parent.Root, bc.stateCache, nil)
+	if err != nil {
+		panic(fmt.Sprintf("failed to get state at %s", block.Header().ParentHash))
+	}
+	_ = bc.processor.Process(block, statedb)
 	elapsed := time.Since(time.Unix(0, int64(block.Time())))
-	err := bc.writeBlockAndSetHead(block)
+	newHash, err := statedb.Commit(block.NumberU64(), true)
+	fmt.Println("new state root after [rpcess ", newHash)
+	err = bc.writeBlockAndSetHead(block)
 	log.Println("🔨  Insert chain block", "number", block.Number(), "hash", fmt.Sprintf("%x", block.Hash().Bytes()[:4]), "elapsed", elapsed.Seconds(), "len(txs): ", len(block.Transactions), getSpeed(len(block.Transactions), elapsed), "tx/s ")
 	return err
 }
@@ -199,7 +211,7 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 	if err != nil {
 		return err
 	}
-
+	bc.currentBlock.Store(block)
 	return bc.stateCache.TrieDB().Commit(root, false)
 }
 
@@ -207,6 +219,7 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 // This function expects the chain mutex to be held.
 func (bc *Blockchain) writeBlockAndSetHead(block *types.Block) error {
 	state, err := bc.StateAt(block.Root())
+	log.Println("reqiested state at", block.Root(), err, block.Number())
 	if err != nil {
 		return err
 	}

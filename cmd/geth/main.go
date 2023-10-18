@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"log"
@@ -16,32 +18,38 @@ import (
 var blockThrottle = time.Millisecond * 50
 
 func main() {
-	f, err := os.OpenFile("./logs/node.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	raftId := flag.Int("raftId", 0, "raft node id")
+	bootstrapNodes := flag.String("bootstrapNodes", "http://127.0.0.1:5000,http://127.0.0.1:5001", "bootstrap nodes list")
+	raftLog := flag.String("raftlog", "./secondRaftNode", "raft log path")
+	chaindbPath := flag.String("chaindb", "./chaindb_2", "chain db path")
+	logPath := flag.String("log", "./logs/node.log", "log save path")
+	flag.Parse()
+
+	f, err := os.OpenFile(*logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	defer f.Close()
 
 	log.SetOutput(f)
-	node, e := makeFullNode()
-	RegisterRaftService(node, e)
+	node, e := makeFullNode(*chaindbPath)
+	service := RegisterRaftService(node, e, uint16(*raftId), strings.Split(*bootstrapNodes, ","), *raftLog)
+	service.StartRaftNode()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	_ = eth.NewApi(e)
 
 	<-ctx.Done()
-
 }
 
-func makeFullNode() (*node.Node, *eth.Ethereum) {
-	ethService := eth.New()
+func makeFullNode(chaindbPath string) (*node.Node, *eth.Ethereum) {
+	ethService := eth.New(chaindbPath)
 	stack := node.New()
 
 	return stack, ethService
 }
 
-func RegisterRaftService(n *node.Node, e *eth.Ethereum) {
-	raft.NewRaft(e, blockThrottle)
-
-	log.Print("raft service registered")
+func RegisterRaftService(n *node.Node, e *eth.Ethereum, raftId uint16, bootstrapNodes []string, raftLogDir string) *raft.RaftService {
+	service := raft.NewRaft(e, blockThrottle, raftId, bootstrapNodes, raftLogDir)
+	log.Println("raft service registered")
+	return service
 }

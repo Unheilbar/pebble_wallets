@@ -32,3 +32,7 @@ stress-minter:
 	rm -rf logs/*
 	# rm mem.prof
 	go test -v -cpuprofile cpu.prof -run 'Test__RunStressMinter' tests/*.go -timeout 99999s
+
+node-up:
+	go build -o geth cmd/geth/*
+	./geth -raftId=2 -bootstrapNodes="http://127.0.0.1:5000,http://127.0.0.1:5001" -raftlog="./secondRaftNode" -chaindb="./chaindb_2" -log="./logs/node2.log"

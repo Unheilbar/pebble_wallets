@@ -168,29 +168,24 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 func (bc *Blockchain) InsertChain(block *types.Block, id int) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	fmt.Println("nodeId", id, "blockHash", block.Hash())
-	fmt.Println("nodeId", id, "txHash", block.Transactions[0].Hash())
-	if bc.CurrentBlock().NumberU64() > block.NumberU64() {
-		log.Println("attem to insert already known block")
+
+	if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
+		log.Println("attempt to insert already known block , commit is enough")
 		return nil
 	}
 	parent := bc.CurrentBlock().Header()
-	fmt.Println("nodeId", id, "headerRoot", block.Header().Root)
-	fmt.Println("nodeId", id, "parentRoot", parent.Root)
 	statedb, err := bc.StateAt(parent.Root)
 	if err != nil {
 		panic(fmt.Sprintf("failed to get state at %s", block.Header().ParentHash))
 	}
-	receipts := bc.processor.Process(block, statedb, id)
-	fmt.Println("nodeId", id, "receiptHash", receipts[0].TxHash)
-	newHash, err := statedb.Commit(block.NumberU64(), true)
-	fmt.Println("nodeId", id, "new state root after process ", newHash)
+	_ = bc.processor.Process(block, statedb, id)
+
+	statedb.Commit(block.NumberU64(), true)
 	err = bc.writeBlockAndSetHead(block, id)
 	return err
 }
 
 func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.StateDB) error {
-
 	// Irrelevant of the canonical status, write the block itself to the database.
 	//
 	// Note all the components of block(td, hash->number map, header, body, receipts)
@@ -217,9 +212,8 @@ func (bc *Blockchain) writeBlockWithState(block *types.Block, state *state.State
 // writeBlockAndSetHead is the internal implementation of WriteBlockAndSetHead.
 // This function expects the chain mutex to be held.
 func (bc *Blockchain) writeBlockAndSetHead(block *types.Block, id int) error {
+	log.Println("requested state at", block.Root(), block.Number(), id)
 	state, err := bc.StateAt(block.Root())
-
-	fmt.Println("requested state at", block.Root(), err, block.Number(), id)
 	if err != nil {
 		return err
 	}
@@ -229,6 +223,12 @@ func (bc *Blockchain) writeBlockAndSetHead(block *types.Block, id int) error {
 	}
 
 	return nil
+}
+
+// HasState checks if state trie is fully present in the database or not.
+func (bc *Blockchain) HasState(hash common.Hash) bool {
+	_, err := bc.stateCache.OpenTrie(hash)
+	return err == nil
 }
 
 func (bc *Blockchain) writeHeadBlock(block *types.Block) {

@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"math"
 	"math/big"
@@ -35,7 +34,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, id 
 	evm := vm.NewEVM(NewEVMBlockContext(block.Header()), vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 
 	for i, tx := range block.Transactions {
-		fmt.Println("process: tx ", tx.Hash(), "block", block.Hash(), "node id", id, "block number", blockNumber)
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := p.applyTransaction(tx, statedb, blockNumber, blockHash, evm)
 		if err != nil {
@@ -45,7 +43,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, id 
 		receipts = append(receipts, receipt)
 	}
 
-	fmt.Println("process final root", statedb.IntermediateRoot(true), "block", blockHash, "node id", id)
+	log.Println("process final root", statedb.IntermediateRoot(true), "block", blockHash, "node id", id, "blockId", blockNumber)
 	return receipts
 }
 
@@ -63,9 +61,12 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 
 	if contractCreation {
 		_, contrAddr, _, vmerr = evm.Create(sender, tx.Data(), math.MaxUint64, new(big.Int))
+		log.Println("apply create", blockNumber)
+
 	} else {
 		//TODO save unique tx hash?
-		_, _, vmerr = evm.Call(sender, common.Address{}, tx.Data(), math.MaxUint64, new(big.Int))
+
+		_, _, vmerr = evm.Call(sender, *tx.To(), tx.Data(), math.MaxUint64, new(big.Int))
 	}
 
 	receipt := &types.Receipt{}
@@ -79,6 +80,7 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 
 	if contractCreation {
 		receipt.ContractAddress = contrAddr
+		log.Println("processor successed deploy", contrAddr, "sender ", tx.From().Hex(), "nonce", 1)
 	}
 
 	receipt.BlockHash = blockHash
@@ -92,29 +94,23 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 	if len(txs) == 0 {
 		return nil, nil, nil
 	}
-	// defer func(t time.Time) {
-	// 	fmt.Println("apply txes tx/s ", float64(len(txs))/time.Since(t).Seconds())
-	// }(time.Now())
-	// blockCtx := NewEVMBlockContext(header)
-	// // PEBBLE we use cancun by default
-	// evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 	var receipts []*types.Receipt
 	var appliedTxs []*types.Transaction
 	blockHash := header.Hash()
 	blockNumber := header.Number
 	txCount := 0
 	for _, tx := range txs {
-		fmt.Println("transition tx hash ", tx.Hash(), "blockHash", blockHash)
 		blockCtx := NewEVMBlockContext(header)
 		// PEBBLE we use cancun by default
 		evm := vm.NewEVM(blockCtx, vm.TxContext{}, statedb, vm.DefaultCancunConfig())
 		evm.Reset(newTxContext(tx.From()), statedb)
-		snap := statedb.Snapshot()
 		statedb.SetTxContext(tx.Hash(), txCount)
+		snap := statedb.Snapshot()
 		result, err := ApplyMessage(evm, tx)
 		if err != nil {
 			statedb.RevertToSnapshot(snap)
-			log.Println("exec reverted", err)
+			res, err := abi.UnpackRevert(result.Revert())
+			log.Fatal("reverted", err, res)
 			continue
 		}
 		statedb.Finalise(true)
@@ -133,7 +129,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		if created {
 			contractAddress := crypto.CreateAddress(evm.TxContext.Origin, 1) //TODO think of something //nonce has been increased
 			receipt.ContractAddress = contractAddress
-			log.Println("successed deploy", contractAddress, "sender ", tx.From().Hex(), "nonce", 1)
+			log.Println("transition successed deploy addr", contractAddress, "sender ", tx.From().Hex(), "nonce", 1)
 		}
 
 		receipt.Logs = getLogs(tx.Hash(), header.Number.Uint64(), header.Hash(), statedb)
@@ -143,13 +139,14 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		revertReason := result.Revert()
 		if revertReason != nil {
 			r, _ := abi.UnpackRevert(revertReason)
-			fmt.Println("revert reason", r)
+			log.Fatal("revert reason", r)
 			receipt.RevertReason = revertReason
 		}
 
 		receipts = append(receipts, receipt)
 	}
-	fmt.Println("transition final root ", statedb.IntermediateRoot(true), "blockHash", blockHash)
+
+	log.Println("transition final root ", statedb.IntermediateRoot(true), "blockHash", blockHash, "block number", blockNumber)
 	return appliedTxs, receipts, nil
 }
 

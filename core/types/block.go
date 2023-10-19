@@ -79,7 +79,6 @@ func CopyHeader(h *Header) *Header {
 	cpy := *h
 	if cpy.Number = new(big.Int); h.Number != nil {
 		cpy.Number.Set(h.Number)
-		cpy.Root = h.Root
 	}
 	return &cpy
 }

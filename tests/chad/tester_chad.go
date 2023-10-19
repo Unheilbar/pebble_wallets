@@ -63,7 +63,7 @@ func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Tr
 		accFrom := c.orderedAccs[ptrFrom%len(c.orderedAccs)]
 		ptrFrom += i
 		accTo := c.orderedAccs[ptrTo%len(c.orderedAccs)]
-		ptrTo += i * 2
+		ptrTo += 1
 		data := getContractTransferPayload(accFrom.Address.Hash().Bytes()[:32], accTo.Address.Hash().Bytes()[:32], contrAddr)
 		id := crypto.Keccak256Hash([]byte(fmt.Sprint(genesisId)))
 		genesisId++

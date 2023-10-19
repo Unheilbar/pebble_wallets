@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
 
@@ -79,6 +80,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	if !contractCreation {
 		if err := st.preCheck(); err != nil {
+			log.Fatal("signature failed")
 			return nil, err
 		}
 	}

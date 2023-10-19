@@ -288,8 +288,6 @@ func (n *raftNode) eventLoop() {
 						log.Println("error decoding block err", err)
 					}
 
-					log.Println("insert transaction hash", block.Transactions[0].Hash())
-
 					err = n.blockchain.InsertChain(&block, n.id)
 					if err != nil {
 						time.Sleep(time.Second * 3)

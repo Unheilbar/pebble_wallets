@@ -32,7 +32,7 @@ func Test__RunStressMinter(t *testing.T) {
 	// start peers
 	bootstrapNodes := []string{
 		"http://127.0.0.1:5000",
-		"http://127.0.0.1:5001",
+		// "http://127.0.0.1:5001",
 	}
 
 	// node 1
@@ -100,6 +100,7 @@ func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	// 0x4BD6080baB7FB15D17bb211e333A87B7edE02D91
 	emissions := tester.GenerateAccEmissionsTx(Proxy)
 	transfers := tester.GenerateTransfers(minterStressTransfersAmount, Proxy)
+	time.Sleep(time.Second * 10) // wait minter to prepare
 	for _, e := range emissions {
 		api.SendTxs(context.Background(), e)
 	}

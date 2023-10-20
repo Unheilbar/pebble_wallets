@@ -325,6 +325,31 @@ func (n *raftNode) eventLoop() {
 	}
 }
 
+func blockExtendsChain(block *types.Block, chain *core.Blockchain) bool {
+	return block.ParentHash() == chain.CurrentBlock().Hash()
+}
+
+func (n *raftNode) applyChainHead(block *types.Block) bool {
+	if !blockExtendsChain(block, n.blockchain) {
+		headBlock := n.blockchain.CurrentBlock()
+
+		log.Println("Non-extending block", "block", block.Hash(), "parent", block.ParentHash(), "head", headBlock.Hash())
+	} else {
+		// PEBBLE TODO THERE SHOULD BE HAPPENING VALIDATION IN CASE WE FOUND NEW BLOCK IN THE CURRENT CHAIN
+		// if existingBlock := n.blockchain.GetBlockByHash(block.Hash()); nil == existingBlock {
+		// 	// validate block here
+		// 	// if err := n.blockchain.Validator().ValidateBody(block); err != nil {
+		// 	// 	panic(fmt.Sprintf("failed to validate block %x (%v)", block.Hash(), err))
+		// 	// }
+		// }
+		err := n.blockchain.InsertChain(block, n.id)
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 func getSpeed(committedTxes int, elapsed time.Duration) float64 {
 	return float64(committedTxes) / elapsed.Seconds()
 }

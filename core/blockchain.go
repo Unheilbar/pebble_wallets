@@ -63,10 +63,10 @@ type CacheConfig struct {
 // defaultCacheConfig are the default caching values if none are specified by the
 // user (also used during testing).
 var defaultCacheConfig = &CacheConfig{
-	TrieCleanLimit: 256,
-	TrieDirtyLimit: 256,
-	TrieTimeLimit:  5 * time.Minute,
-	SnapshotLimit:  256,
+	TrieCleanLimit: 1024,
+	TrieDirtyLimit: 1024,
+	TrieTimeLimit:  30 * time.Minute,
+	SnapshotLimit:  1024,
 	SnapshotWait:   true,
 	StateScheme:    rawdb.HashScheme,
 }
@@ -145,22 +145,9 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	check := state.GetCode(common.HexToAddress("0x6027946B05e7ab6Ef245093622AB18eaD5453877"))
-	if check == nil {
-		panic("precheck failed")
-	}
-	root, err := state.Commit(blockNumber, true)
-	if err != nil {
-		return fmt.Errorf("error committing public state: %v", err)
-	}
 
-	state, err = bc.StateAt(root)
-	if err != nil {
-		panic(err)
-	}
-	check = state.GetCode(common.HexToAddress("0x6027946B05e7ab6Ef245093622AB18eaD5453877"))
-	if check == nil {
-		panic("check failed")
+	if _, err := state.Commit(blockNumber, true); err != nil {
+		return fmt.Errorf("error committing public state: %v", err)
 	}
 	return nil
 }
@@ -168,17 +155,27 @@ func (bc *Blockchain) CommitBlockWithState(blockNumber uint64, state *state.Stat
 func (bc *Blockchain) InsertChain(block *types.Block, id int) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
+	// PEBBLE prechecks can be happening here
+	return bc.insertChain(block, id)
 
-	if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
-		log.Println("attempt to insert already known block , commit is enough")
-		return nil
-	}
+}
+
+func (bc *Blockchain) insertChain(block *types.Block, id int) error {
 	parent := bc.CurrentBlock().Header()
 	statedb, err := bc.StateAt(parent.Root)
 	if err != nil {
 		panic(fmt.Sprintf("failed to get state at %s", block.Header().ParentHash))
 	}
-	_ = bc.processor.Process(block, statedb, id)
+	// _ = bc.processor.Process(block, statedb, id) TODO SHOULDNT BE CALLED AT MINTER
+	var (
+	// lastCanon *types.Block
+	)
+	// PEBBLE TODO SEND EVENT IN CASE WE INSERTED BLOCK SUCCESFULLY
+	// defer func() {
+	// 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
+	// 		bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon})
+	// 	}
+	// }()
 
 	statedb.Commit(block.NumberU64(), true)
 	err = bc.writeBlockAndSetHead(block, id)

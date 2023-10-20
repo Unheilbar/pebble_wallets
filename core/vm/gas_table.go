@@ -95,7 +95,10 @@ var (
 	gasReturnDataCopy = memoryCopierGas(2)
 )
 
+// PEBBLE TODO check why this gets called later
 func gasSStore(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+	return 200, nil
+
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
 		current = evm.StateDB.GetState(contract.Address(), x.Bytes32())

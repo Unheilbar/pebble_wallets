@@ -131,3 +131,4 @@ func (b *Block) EncodeRLP(w io.Writer) error {
 		Txs:    b.Transactions,
 	})
 }
+func (b *Block) ParentHash() common.Hash { return b.header.ParentHash }

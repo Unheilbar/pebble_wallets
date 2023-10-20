@@ -779,6 +779,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			continue
 		}
 		if obj.selfDestructed || (deleteEmptyObjects && obj.empty()) {
+			fmt.Println("delete empty objects is triggered")
 			obj.deleted = true
 
 			// We need to maintain account deletions explicitly (will remain

@@ -18,12 +18,21 @@ contract Transfer {
         monthAmount = 10000000;
     }
 
-    function transfer(address origin, bytes32 fromWalletId, bytes32 toWalletId, uint256 amount) public {
+    function transfer(address origin, bytes32 fromWalletId, bytes32 toWalletId, uint128 amount) public {
         bytes32 walletFromOrigin = stateContract.getSender(origin);
         require(walletFromOrigin == fromWalletId, "origin doesnt match wallet"); //check correct sender
         require(amount!=0, "invalid amount");
-        require(stateContract.balance(fromWalletId) > amount , "not enough balance"); // balance availability
-        require(stateContract.monthAmount(fromWalletId) + amount < monthAmount, "limit exceeded"); // check month amount
+        uint128 fromBalance;
+        uint128 toBalance;
+
+        uint128 fromAmount;
+        uint128 toAmount;
+
+        (fromBalance, fromAmount) = stateContract.getWalletState(fromWalletId);
+        (toBalance, toAmount) = stateContract.getWalletState(toWalletId);
+
+        require(fromBalance > amount , "not enough balance"); // balance availability
+        require(fromAmount + amount < monthAmount, "limit exceeded"); // check month amount
         require(stateContract.getWalletStatus(fromWalletId)!=2, "from wallet status failed");
         require(stateContract.getWalletStatus(toWalletId)!=2, "to wallet status failed");
         
@@ -32,9 +41,10 @@ contract Transfer {
         
         require((canTransferTo||true), "unavailable transfer"); // cause i dont set wallet types for deploy
 
-        stateContract.add(toWalletId, amount);
-        stateContract.sub(toWalletId, amount);
-        stateContract.addMonth(toWalletId, amount);
+        // substract balance, add amount
+        stateContract.setWalletState(fromWalletId, fromBalance-amount, fromAmount+amount);
+        //add balance
+        stateContract.setWalletState(toWalletId, toBalance+amount, toAmount);
 
         eventContract.emitTransfer(fromWalletId, toWalletId, amount);
     }

@@ -4,9 +4,8 @@ pragma solidity >=0.8.2 <0.9.0;
 
 
 contract State {
-    mapping (bytes32 => uint256) balances;
+    mapping (bytes32 => uint128[2]) walletStates;
     mapping (address => bytes32) senders;
-    mapping (bytes32 => uint256) monthAmounts;
     mapping (bytes32 => uint8) walletStatusMap;
     mapping (bytes32 => uint8) walletTypesMap;
     mapping (bytes32 => bool) walletAvailableTransferTypes;
@@ -17,29 +16,17 @@ contract State {
         walletAvailableTransferTypes[0x0000000000000000000000000000000000100000000000000000000000000001]=true;
     }
 
-    function add(bytes32 walletId, uint256 amount) public innerCall {
-        balances[walletId] = balances[walletId] + amount;
+    function setWalletState(bytes32 walletId, uint128 balance, uint128 monthAmount) public innerCall {
+        walletStates[walletId] = [balance, monthAmount];
     }
 
-    function addMonth(bytes32 walletId, uint256 amount) public innerCall {
-        monthAmounts[walletId] = monthAmounts[walletId] + amount;
-    }
-
-    function sub(bytes32 walletId, uint256 amount) public innerCall {
-        balances[walletId] = balances[walletId] - amount;
+    function getWalletState(bytes32 walletId) external view returns(uint128, uint128)  {
+        uint128[2] memory walletState = walletStates[walletId];
+        return  (walletState[0],  walletState[1]);
     }
 
     function setSender(address sender ,bytes32 walletId) public innerCall {
         senders[sender] = walletId;
-    }
-
-
-    function balance(bytes32 walletId) external view returns(uint256){
-        return balances[walletId];
-    }
-
-    function monthAmount (bytes32 walletId) external view returns(uint256){
-        return monthAmounts[walletId];
     }
 
     function getSender(address sender) external view returns(bytes32) {

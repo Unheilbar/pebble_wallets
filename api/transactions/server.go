@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/Unheilbar/pebbke_wallets/api/transactions/proto"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebbke_wallets/proto"
 	"github.com/ethereum/go-ethereum/common"
 	"google.golang.org/grpc"
 )

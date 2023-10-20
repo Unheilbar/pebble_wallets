@@ -166,7 +166,12 @@ func (bc *Blockchain) insertChain(block *types.Block, id int) error {
 	if err != nil {
 		panic(fmt.Sprintf("failed to get state at %s", block.Header().ParentHash))
 	}
-	// _ = bc.processor.Process(block, statedb, id) TODO SHOULDNT BE CALLED AT MINTER
+
+	if bc.HasState(block.Root()) {
+		return bc.writeBlockAndSetHead(block, id)
+	}
+
+	_ = bc.processor.Process(block, statedb, id) //TODO SHOULDNT BE CALLED AT MINTER
 	var (
 	// lastCanon *types.Block
 	)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/binding"
+	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/eth"
 	"github.com/Unheilbar/pebbke_wallets/node"
 	"github.com/Unheilbar/pebbke_wallets/raft"
@@ -19,7 +20,7 @@ import (
 )
 
 const (
-	grpcApiHost = "0.0.0.0"
+	grpcApiHost = "127.0.0.1"
 	grpcApiPort = "12345"
 )
 
@@ -58,6 +59,21 @@ func Test__RunStressMinter(t *testing.T) {
 	defer stop()
 	api := eth.NewApi(firstEth)
 
+	chainEvent := make(chan core.ChainHeadEvent)
+	sub := firstEth.Blockchain().SubscribeChainHeadEvent(chainEvent)
+
+	go func() {
+		for {
+			select {
+			case event := <-chainEvent:
+				fmt.Println("receieved block from chain event", event.Block.Number())
+			case err := <-sub.Err():
+				fmt.Println("err recieved from chain event", err)
+				return
+			}
+
+		}
+	}()
 	runStress(ctx, api)
 	<-ctx.Done()
 }
@@ -110,7 +126,7 @@ func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 		api.SendTxs(context.Background(), e)
 	}
 
-	time.Sleep(time.Second * 100) // wait emissions to process
+	time.Sleep(time.Second * 10) // wait emissions to process
 
 	fmt.Println("Generated transaction count", len(transfers))
 	for _, t := range transfers {

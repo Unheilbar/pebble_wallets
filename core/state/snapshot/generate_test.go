@@ -57,10 +57,6 @@ func testGeneration(t *testing.T, scheme string) {
 	var helper = newHelper(scheme)
 	stRoot := helper.makeStorageTrie(common.Hash{}, []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, false)
 
-	helper.addTrieAccount("acc-1", &types.StateAccount{Balance: big.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()})
-	helper.addTrieAccount("acc-2", &types.StateAccount{Balance: big.NewInt(2), Root: types.EmptyRootHash, CodeHash: types.EmptyCodeHash.Bytes()})
-	helper.addTrieAccount("acc-3", &types.StateAccount{Balance: big.NewInt(3), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()})
-
 	helper.makeStorageTrie(hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
 	helper.makeStorageTrie(hashData([]byte("acc-3")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
 

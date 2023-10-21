@@ -3,7 +3,6 @@ package eth
 import (
 	"log"
 
-	txApi "github.com/Unheilbar/pebbke_wallets/api/transactions"
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
 	"github.com/Unheilbar/pebbke_wallets/core/txpool"
@@ -33,7 +32,7 @@ func New(dbPath string, apiServerHost string, apiServerPort string) *Ethereum {
 
 	ethApi := NewApi(ethereum)
 
-	txApi.NewServer(ethApi, apiServerHost, apiServerPort)
+	NewServer(ethApi, apiServerHost, apiServerPort)
 
 	return ethereum
 }

@@ -132,10 +132,10 @@ func (minter *minter) mintNewBlock() {
 	var logs int
 	for _, r := range receipts {
 		if r.Logs != nil {
+			logs++
 			for _, l := range r.Logs {
 				l.BlockHash = headerHash
 				l.TxHash = r.TxHash
-				logs++
 			}
 		}
 	}
@@ -162,8 +162,6 @@ func (minter *minter) mintNewBlock() {
 func (env *work) commitTransactions(txs []*types.Transaction, bc *core.Blockchain) (types.Transactions, types.Receipts) {
 	// commit transactions
 	txes, receipts, _ := core.ApplyTransactions(bc, env.publicState, env.header, txs) // TODO probably won't be any errors here, since we dont control signal interrupt yet
-
-	receipts = append(receipts, receipts...)
 
 	return txes, receipts
 }

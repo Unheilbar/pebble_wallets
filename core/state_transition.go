@@ -85,7 +85,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		}
 	}
 
-	st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), vm.ActivePrecompiles(rules), nil) //TODO Later add access list to Transaction
+	//PEBBLE TODO Later add access list to Transaction
+	st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), vm.ActivePrecompiles(rules), nil)
 
 	var (
 		ret       []byte

@@ -42,10 +42,13 @@ contract Transfer {
         require((canTransferTo||true), "unavailable transfer"); // cause i dont set wallet types for deploy
 
         // substract balance, add month amount
-        stateContract.setWalletState(fromWalletId, fromBalance-amount, fromAmount+amount);
+        fromAmount = fromAmount + amount;
+        fromBalance = fromBalance - amount;
+        stateContract.setWalletState(fromWalletId, fromBalance, fromAmount);
         //add balance
-        stateContract.setWalletState(toWalletId, toBalance+amount, toAmount);
+        toBalance = toBalance + amount;
+        stateContract.setWalletState(toWalletId, toBalance, toAmount);
 
-        eventContract.emitTransfer(fromWalletId, toWalletId, amount);
+        eventContract.emitTransfer(fromWalletId, toWalletId, fromBalance, toBalance);
     }
 }

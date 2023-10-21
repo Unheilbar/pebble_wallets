@@ -17,6 +17,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -31,6 +32,10 @@ type Blockchain struct {
 	chainmu sync.RWMutex // blockchain insertion lock
 
 	prefetcher Prefetcher //
+
+	// events
+	scope         event.SubscriptionScope
+	chainHeadFeed event.Feed
 }
 
 type Processor interface {
@@ -161,29 +166,31 @@ func (bc *Blockchain) InsertChain(block *types.Block, id int) error {
 }
 
 func (bc *Blockchain) insertChain(block *types.Block, id int) error {
+	var lastCanon *types.Block
 	parent := bc.CurrentBlock().Header()
 	statedb, err := bc.StateAt(parent.Root)
 	if err != nil {
 		panic(fmt.Sprintf("failed to get state at %s", block.Header().ParentHash))
 	}
 
+	defer func() {
+		if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
+			bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon})
+		}
+	}()
+
 	if bc.HasState(block.Root()) {
+		lastCanon = block
 		return bc.writeBlockAndSetHead(block, id)
 	}
 
 	_ = bc.processor.Process(block, statedb, id) //TODO SHOULDNT BE CALLED AT MINTER
-	var (
-	// lastCanon *types.Block
-	)
-	// PEBBLE TODO SEND EVENT IN CASE WE INSERTED BLOCK SUCCESFULLY
-	// defer func() {
-	// 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
-	// 		bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon})
-	// 	}
-	// }()
 
 	statedb.Commit(block.NumberU64(), true)
 	err = bc.writeBlockAndSetHead(block, id)
+	if err != nil {
+		lastCanon = block
+	}
 	return err
 }
 
@@ -258,4 +265,9 @@ func getContractDeployTX(contrCode []byte) *types.Transaction {
 		From: common.Address{},
 		Data: contrCode,
 	})
+}
+
+// SubscribeChainHeadEvent registers a subscription of ChainHeadEvent.
+func (bc *Blockchain) SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription {
+	return bc.scope.Track(bc.chainHeadFeed.Subscribe(ch))
 }

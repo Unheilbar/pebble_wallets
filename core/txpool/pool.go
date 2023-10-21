@@ -37,7 +37,7 @@ type TxPool struct {
 }
 
 func (tp *TxPool) AddTx(tx *types.Transaction) error {
-	// prevalidate before mutex ??
+	// prevalidate before mutex and return error in case of validation error?
 	tp.mx.Lock()
 	defer tp.mx.Unlock()
 	if tp.Get(tx.Hash()) != nil {

@@ -2,11 +2,13 @@ syntax = "proto3";
 
 package api;
 
-option go_package = ".;proto";
+option go_package = "/pebble_wallets";
 
 
-service ApiTransactions {
+service PebbleAPI {
        rpc SendTransaction (TransactionRequest) returns (TransactionReply) {}
+       
+       rpc SubscribeBlocks (SubscribeRequest) returns (stream Block) {}
   }
   
   message TransactionRequest {
@@ -15,6 +17,14 @@ service ApiTransactions {
     bytes id = 3;
     bytes signature = 4;
     bytes data = 5; 
+  }
+
+  message SubscribeRequest{
+
+  }
+
+  message Block {
+    int64 blockId = 1;
   }
   
   message TransactionReply {

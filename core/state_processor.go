@@ -138,6 +138,7 @@ func ApplyTransactions(chain *Blockchain, statedb *state.StateDB, header *types.
 		receipt.TransactionIndex = uint(statedb.TxIndex())
 		revertReason := result.Revert()
 		if revertReason != nil {
+			// PEBBLE TODO REMOVE IT FROM HERE
 			r, _ := abi.UnpackRevert(revertReason)
 			log.Fatal("revert reason", r)
 			receipt.RevertReason = revertReason

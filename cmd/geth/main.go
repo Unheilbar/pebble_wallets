@@ -23,6 +23,9 @@ func main() {
 	raftLog := flag.String("raftlog", "./secondRaftNode", "raft log path")
 	chaindbPath := flag.String("chaindb", "./chaindb_2", "chain db path")
 	logPath := flag.String("log", "./logs/node.log", "log save path")
+	grpcHost := flag.String("grpc_host", "localhost", "host of grpc api")
+	grpcPort := flag.String("grpc_port", "6050", "port of grpc api")
+
 	flag.Parse()
 
 	f, err := os.OpenFile(*logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -32,7 +35,7 @@ func main() {
 	defer f.Close()
 
 	log.SetOutput(f)
-	node, e := makeFullNode(*chaindbPath)
+	node, e := makeFullNode(*chaindbPath, *grpcHost, *grpcPort)
 	service := RegisterRaftService(node, e, uint16(*raftId), strings.Split(*bootstrapNodes, ","), *raftLog)
 	service.StartRaftNode()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -41,8 +44,8 @@ func main() {
 	<-ctx.Done()
 }
 
-func makeFullNode(chaindbPath string) (*node.Node, *eth.Ethereum) {
-	ethService := eth.New(chaindbPath)
+func makeFullNode(chaindbPath, grpcHost, grpcPort string) (*node.Node, *eth.Ethereum) {
+	ethService := eth.New(chaindbPath, grpcHost, grpcPort)
 	stack := node.New()
 
 	return stack, ethService

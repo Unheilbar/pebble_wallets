@@ -2,9 +2,9 @@ package chad_v2
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"log"
 	"math/big"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -14,10 +14,14 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
 )
 
 const genesisPrivate = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19"
-const emissionTokens = 10000000
+const emissionTokens = 1000000000 // amount of tokens for emission
+const transferTokens = 10         // amount of tokens for transfer
+const methodEmission = "emission"
+const methodTransfer = "transfer"
 
 type NodeClient interface {
 	SendTransaction()
@@ -29,46 +33,55 @@ type chadAcc struct {
 }
 
 type fixtureAcc struct {
+	sync.Mutex
 	Address         common.Address
 	Private         *ecdsa.PrivateKey
 	WalletId        [32]byte
-	ExpectedBalance *big.Int //expexcted balance gets calculated every time new transfer is generated
+	ExpectedBalance *big.Int //expexcted balance gets calculated every time we send a new transfer
 }
 
 type fixtureTransfer struct {
 	fromAccount *fixtureAcc
 	toAccount   *fixtureAcc
 	sendTime    time.Time
-	transaction types.Transaction
+	transaction *types.Transaction
 }
 
 type fixtureEmission struct {
 	emissionWallet [32]byte
-	transaction    types.Transaction
+	transaction    *types.Transaction
 }
 
 type Chad struct {
 	proxyAddress common.Address
 	accsMap      map[common.Address]*fixtureAcc
 	accList      []*fixtureAcc
-	transfers    []*fixtureTransfer
+
+	transfers []*fixtureTransfer
+	emissions []*fixtureEmission
 
 	accounts map[common.Address]chadAcc
 
 	client      NodeClient
 	mu          sync.Mutex
 	lastGenesis string
+
+	deploys []*types.Transaction
 }
 
 // genesisOffset determines from which point we need generate contract addresses
-func New(proxyAddress common.Address) *Chad {
+func New(proxyAddress common.Address, client NodeClient) *Chad {
 	c := &Chad{
 		proxyAddress: proxyAddress,
 
 		transfers: make([]*fixtureTransfer, 0),
+		emissions: make([]*fixtureEmission, 0),
 		accsMap:   make(map[common.Address]*fixtureAcc),
 		accList:   make([]*fixtureAcc, 0),
+		client:    client,
 	}
+
+	c.initDeploys()
 
 	return c
 }
@@ -99,9 +112,25 @@ func (c *Chad) InitAccs(walletsAmount int, genesisOffset int) {
 }
 
 func (c *Chad) InitEmissions() {
-	// for _, acc := range c.accList {
+	for _, acc := range c.accList {
+		payload := packTX(methodEmission, acc.Address, acc.WalletId, big.NewInt(emissionTokens))
+		c.emissions = append(c.emissions, &fixtureEmission{
+			emissionWallet: acc.WalletId,
+			transaction:    c.getTx(acc, payload, c.proxyAddress),
+		})
+	}
+}
 
-	// }
+func (c *Chad) InitTransfers(transfersAmount int) {
+	for i := 0; i < transfersAmount; i++ {
+		acc1, acc2 := c.getRandomAccsPair()
+		payload := packTX(methodTransfer, acc1.WalletId, acc2.WalletId, big.NewInt(transferTokens))
+		c.transfers = append(c.transfers, &fixtureTransfer{
+			fromAccount: acc1,
+			toAccount:   acc2,
+			transaction: c.getTx(acc1, payload, c.proxyAddress),
+		})
+	}
 }
 
 func fixtureAccFromAddr(addr common.Address, key *ecdsa.PrivateKey) *fixtureAcc {
@@ -116,134 +145,64 @@ func fixtureAccFromAddr(addr common.Address, key *ecdsa.PrivateKey) *fixtureAcc 
 	return acc
 }
 
-func (c *Chad) GenerateAccEmissionsTx(contrAddr common.Address) []*types.Transaction {
-	var ret []*types.Transaction
-
-	for _, acc := range c.accounts {
-		payload := getContractEmissionPayload(acc.Address, acc.Address.Hash().Bytes()[:32], contrAddr)
-		c.fakeBalances[acc.Address.Hex()] += emissionVal
-		genTx := types.NewTx(types.TxData{
-			From: acc.Address,
-			To:   &contrAddr,
-			Id:   crypto.Keccak256Hash([]byte{3, 2, 1}),
-			Data: payload,
-		})
-		sign, err := crypto.Sign(genTx.Hash().Bytes(), acc.Private)
-		if err != nil {
-			log.Fatal("sign err", err)
-		}
-		genTx.WithSignature(sign)
-		ret = append(ret, genTx)
-	}
-	return ret
-}
-
-func (c *Chad) GetTestAccByID(id uint) chadAcc {
-	return c.orderedAccs[id]
-}
-
-func (c *Chad) GenerateTransfers(size int, contrAddr common.Address) []*types.Transaction {
-	var ret []*types.Transaction
-	var ptrFrom int
-	var ptrTo int
-	genesisId := 1
-	for i := 0; i < size; i++ {
-		accFrom := c.orderedAccs[ptrFrom%len(c.orderedAccs)]
-		ptrFrom += i
-		accTo := c.orderedAccs[ptrTo%len(c.orderedAccs)]
-		ptrTo += 1
-		data := getContractTransferPayload(accFrom.Address.Hash().Bytes()[:32], accTo.Address.Hash().Bytes()[:32], contrAddr)
-		id := crypto.Keccak256Hash([]byte(fmt.Sprint(genesisId)))
-		genesisId++
-
-		genTx := types.NewTx(types.TxData{
-			From: accFrom.Address,
-			To:   &contrAddr,
-			Id:   id,
-			Data: data,
-		})
-		sign, err := crypto.Sign(genTx.Hash().Bytes(), accFrom.Private)
-		if err != nil {
-			log.Fatal("sign err", err)
-		}
-		genTx.WithSignature(sign)
-		ret = append(ret, genTx)
-		c.fakeBalances[accFrom.Address.Hex()] -= transferVal
-		c.fakeBalances[accTo.Address.Hex()] += transferVal
-	}
-
-	return ret
-}
-
-func (c *Chad) GenerateAccs(size int) {
-	c.accounts = make(map[common.Address]chadAcc)
-	c.fakeBalances = make(map[string]uint)
-
-	prev := genesisPrivate
-	for i := 0; i < size; i++ {
-		privateKey, err := crypto.HexToECDSA(prev)
-		if err != nil {
-			log.Fatal("err gen private", err)
-		}
-
-		newAddr := common.BytesToAddress(crypto.Keccak256(crypto.FromECDSAPub(&privateKey.PublicKey)[1:])[12:])
-		c.accounts[newAddr] = chadAcc{Address: newAddr, Private: privateKey}
-		c.orderedAccs = append(c.orderedAccs, c.accounts[newAddr])
-		prev = string(crypto.Keccak256Hash([]byte(prev)).Hex()[2:])
-	}
-}
-
-func (c *Chad) GetContractDeployTX(from common.Address, contrCode []byte, id common.Hash) *types.Transaction {
-	genTx := types.NewTx(types.TxData{
-		From: from,
-		To:   nil,
-		Id:   id,
-		Data: contrCode,
-	})
-	return genTx
-}
-
-const emissionVal = 100000000
-
-func getContractEmissionPayload(pubKey common.Address, wallet []byte, contrAddr common.Address) []byte {
-	var arr [32]byte
-	copy(arr[:], wallet)
-	data, err := packTX("emission", pubKey, arr, big.NewInt(emissionVal))
-	if err != nil {
-		log.Fatal("err generate emission input", err, data)
-	}
-
-	return data
-}
-
-const transferVal = 1
-
-func getContractTransferPayload(fromWallet []byte, toWallet []byte, contrAddr common.Address) []byte {
-	var arrFrom [32]byte
-	copy(arrFrom[:], fromWallet)
-	var arrTo [32]byte
-	copy(arrTo[:], toWallet)
-	data, err := packTX("transfer", arrFrom, arrTo, big.NewInt(transferVal))
-	if err != nil {
-		log.Fatal("err generate transfer input", err, data)
-	}
-
-	return data
-}
-
-func packTX(method string, params ...interface{}) ([]byte, error) {
+func packTX(method string, params ...interface{}) []byte {
 	bind := binding.ProxyABI
 
 	pabi, err := abi.JSON(strings.NewReader(bind))
 
 	if err != nil {
-		return nil, err
+		log.Fatal("failed to read abi", err)
 	}
 
 	input, err := pabi.Pack(method, params...)
 	if err != nil {
-		return nil, err
+		log.Fatal("failed to pack tx", err)
 	}
 
-	return input, nil
+	return input
+}
+
+func (c *Chad) getTx(acc *fixtureAcc, payload []byte, to common.Address) *types.Transaction {
+	id := []byte(uuid.New().String())
+	genTx := types.NewTx(types.TxData{
+		From: acc.Address,
+		To:   &to,
+		Id:   crypto.Keccak256Hash(id),
+		Data: payload,
+	})
+	sign, err := crypto.Sign(genTx.Hash().Bytes(), acc.Private)
+	if err != nil {
+		log.Fatal("sign err", err)
+	}
+	return genTx.WithSignature(sign)
+}
+
+func (c *Chad) getRandomAccsPair() (*fixtureAcc, *fixtureAcc) {
+	first := rand.Intn(len(c.accList))
+	second := first
+	for second == first {
+		second = rand.Intn(len(c.accList))
+	}
+	return c.accList[first], c.accList[second]
+}
+
+func (c *Chad) initDeploys() {
+	stateDeploy := newDeploy(c.accList[3].Address, common.Hex2Bytes(binding.StateMetaData.Bin[2:]))
+	eventsDeploy := newDeploy(c.accList[4].Address, common.Hex2Bytes(binding.EventsMetaData.Bin[2:]))
+	transferDeploy := newDeploy(c.accList[5].Address, common.Hex2Bytes(binding.TransferMetaData.Bin[2:]))
+	proxyDeploy := newDeploy(c.accList[6].Address, common.Hex2Bytes(binding.ProxyMetaData.Bin[2:]))
+
+	c.deploys = []*types.Transaction{stateDeploy, eventsDeploy, transferDeploy, proxyDeploy}
+}
+
+var defaultDeployHash = crypto.Keccak256Hash([]byte("eventually will have to change it"))
+
+func newDeploy(deployer common.Address, code []byte) *types.Transaction {
+	genTx := types.NewTx(types.TxData{
+		From: deployer,
+		To:   nil,
+		Id:   defaultDeployHash,
+		Data: code,
+	})
+	return genTx
 }

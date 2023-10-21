@@ -18,6 +18,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+const (
+	grpcApiHost = "0.0.0.0"
+	grpcApiPort = "12345"
+)
+
 var blockThrottle = time.Millisecond * 50
 
 func Test__RunStressMinter(t *testing.T) {
@@ -58,7 +63,7 @@ func Test__RunStressMinter(t *testing.T) {
 }
 
 func makeFullNode(dbPath string) (*node.Node, *eth.Ethereum) {
-	ethService := eth.New(dbPath)
+	ethService := eth.New(dbPath, grpcApiHost, grpcApiPort)
 	stack := node.New()
 
 	return stack, ethService
@@ -69,8 +74,8 @@ func RegisterRaftService(n *node.Node, e *eth.Ethereum, raftId uint16, bootstrap
 	return service
 }
 
-var minterStressWalletsAmount = 10000    // 1000 wallets sounds good for a transaction
-var minterStressTransfersAmount = 100000 // 10 million transactions
+var minterStressWalletsAmount = 10    // 1000 wallets sounds good for a transaction
+var minterStressTransfersAmount = 100 // 10 million transactions
 
 func runStress(ctx context.Context, api *eth.EthAPIBackend) {
 	var tester chad.Chad

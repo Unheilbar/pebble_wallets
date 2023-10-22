@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -35,6 +37,7 @@ func (s *Sender) Listen(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer stream.CloseSend()
 
 	for {
 		select {
@@ -44,7 +47,6 @@ func (s *Sender) Listen(ctx context.Context) error {
 		default:
 			msg, err := stream.Recv()
 			if err != nil {
-				stream.CloseSend()
 				log.Println("recieve error from stream", err)
 				return err
 			}
@@ -62,6 +64,7 @@ func (s *Sender) Listen(ctx context.Context) error {
 			}
 
 			fmt.Println("recieved block", block.Header().Root)
+			fmt.Println("receipts len", len(block.Transactions))
 		}
 	}
 }
@@ -70,6 +73,15 @@ func (s *Sender) Deploy() {
 	for i, tx := range s.testerData.deploys {
 		fmt.Printf("deploy %d out of %d ...", i+1, len(s.testerData.deploys))
 		s.client.SendTransaction(context.Background(), txToProto(tx))
+	}
+}
+
+func (s *Sender) RunEmissions(rps int, threads int) {
+	d := int(time.Second) / rps
+	r := rate.Every(time.Duration(d))
+	lim := rate.NewLimiter(r, rps/2)
+	for i := 0; i < threads; i++ {
+		go s.sendEmission()
 	}
 }
 

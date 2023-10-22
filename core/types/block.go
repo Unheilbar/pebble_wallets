@@ -87,12 +87,16 @@ func CopyHeader(h *Header) *Header {
 // a block's data contents (transactions and uncles) together.
 type Body struct {
 	Transactions []*Transaction
+	Receipts     []*Receipt
 }
 
 // Body returns the non-header content of the block.
 // Note the returned data is not an independent copy.
 func (b *Block) Body() *Body {
-	return &Body{b.Transactions}
+	return &Body{
+		Transactions: b.Transactions,
+		Receipts:     b.Receipts,
+	}
 }
 
 // WithBody returns a copy of the block with the given transaction and uncle contents.

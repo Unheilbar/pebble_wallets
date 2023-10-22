@@ -16,7 +16,8 @@ const (
 	walletsAmount   = 10
 	transfersAmount = 10
 
-	rps = 100
+	rps     = 5
+	threads = 10
 )
 
 func Test__Stess(t *testing.T) {
@@ -36,5 +37,6 @@ func Test__Stess(t *testing.T) {
 	go sender.Listen(ctx)
 
 	sender.Deploy()
+	sender.RunEmissions(rps, threads)
 	<-ctx.Done()
 }

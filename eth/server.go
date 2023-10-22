@@ -7,24 +7,28 @@ import (
 	"net"
 	"time"
 
+	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/rlp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type ethApi interface {
+type Backend interface {
 	SendTx(ctx context.Context, signedTx *types.Transaction) (time.Time, error)
+	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 }
 
 type Server struct {
-	ethApi ethApi
+	ethApi Backend
 	pb.UnimplementedPebbleAPIServer
 }
 
-func NewServer(e ethApi, host string, port string) error {
+func NewServer(e Backend, host string, port string) error {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
 		return err
@@ -60,13 +64,27 @@ func (s *Server) SendTransaction(ctx context.Context, tx *pb.TransactionRequest)
 }
 
 func (s *Server) SubscribeBlocks(req *pb.SubscribeRequest, stream pb.PebbleAPI_SubscribeBlocksServer) error {
+	ch := make(chan core.ChainHeadEvent)
+	sub := s.ethApi.SubscribeChainHeadEvent(ch)
+	defer sub.Unsubscribe()
 	for {
 		select {
 		case <-stream.Context().Done():
 			log.Println("client closed stream connection")
 			return status.Error(codes.Canceled, "stream has ended")
-		default:
-			err := stream.Send(&pb.Block{})
+		case err := <-sub.Err():
+			log.Println("client closed stream connection", err)
+			return status.Error(codes.Canceled, "stream has ended")
+		case event := <-ch:
+			bblock, err := rlp.EncodeToBytes(event.Block)
+			if err != nil {
+				log.Println("block encode err", err)
+				return status.Error(codes.Canceled, "stream has ended")
+			}
+			err = stream.Send(&pb.Block{
+				BlockId:  event.Block.Number().Int64(),
+				BlockRLP: bblock,
+			})
 			if err != nil {
 				log.Println(err)
 				return status.Error(codes.Canceled, "stream has ended")

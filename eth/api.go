@@ -4,7 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/ethereum/go-ethereum/event"
 )
 
 type EthAPIBackend struct {
@@ -16,6 +18,7 @@ func NewApi(eth *Ethereum) *EthAPIBackend {
 }
 
 func (b *EthAPIBackend) SendTxs(ctx context.Context, signedTx *types.Transaction) {
+	// PEBBLE BATCH TRANSACTIONS AREN'T IMPLEMENTED YET
 	// Quourum
 	// validation for node need to happen here and cannot be done as a part of
 	// validateTx in tx_pool.go as tx_pool validation will happen in every node
@@ -31,6 +34,10 @@ func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction)
 	signedTx.WithTime(recieveTime) //
 	err := b.eth.txPool.AddTx(signedTx)
 	return recieveTime, err
+}
+
+func (b *EthAPIBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
+	return b.eth.blockchain.SubscribeChainHeadEvent(ch)
 }
 
 // For test purposes only

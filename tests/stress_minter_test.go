@@ -74,6 +74,7 @@ func Test__RunStressMinter(t *testing.T) {
 
 		}
 	}()
+
 	runStress(ctx, api)
 	<-ctx.Done()
 }

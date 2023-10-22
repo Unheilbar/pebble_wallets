@@ -25,6 +25,7 @@ service PebbleAPI {
 
   message Block {
     int64 blockId = 1;
+    bytes blockRLP = 2;
   }
   
   message TransactionReply {

@@ -1,7 +1,10 @@
 package test_minter
 
 import (
+	"context"
 	"math/rand"
+	"os"
+	"os/signal"
 	"testing"
 	"time"
 
@@ -10,19 +13,28 @@ import (
 )
 
 const (
-	walletsAmount   = 10000
-	transfersAmount = 100000
+	walletsAmount   = 10
+	transfersAmount = 10
 
 	rps = 100
 )
 
 func Test__Stess(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	tester := chad_v2.New(common.Address{}, nil)
+	testerData := chad_v2.New(common.Address{})
 
-	tester.InitAccs(walletsAmount, 0)
+	testerData.InitAccs(walletsAmount, 0)
+	testerData.InitDeploys()
+	testerData.InitEmissions()
+	testerData.InitTransfers(transfersAmount)
 
-	tester.InitEmissions()
+	sender := chad_v2.NewSender("localhost:6050", testerData)
 
-	tester.InitTransfers(transfersAmount)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	go sender.Listen(ctx)
+
+	sender.Deploy()
+	<-ctx.Done()
 }

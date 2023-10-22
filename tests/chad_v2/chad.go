@@ -23,10 +23,6 @@ const transferTokens = 10         // amount of tokens for transfer
 const methodEmission = "emission"
 const methodTransfer = "transfer"
 
-type NodeClient interface {
-	SendTransaction()
-}
-
 type chadAcc struct {
 	Address common.Address
 	Private *ecdsa.PrivateKey
@@ -62,7 +58,6 @@ type Chad struct {
 
 	accounts map[common.Address]chadAcc
 
-	client      NodeClient
 	mu          sync.Mutex
 	lastGenesis string
 
@@ -70,7 +65,7 @@ type Chad struct {
 }
 
 // genesisOffset determines from which point we need generate contract addresses
-func New(proxyAddress common.Address, client NodeClient) *Chad {
+func New(proxyAddress common.Address) *Chad {
 	c := &Chad{
 		proxyAddress: proxyAddress,
 
@@ -78,10 +73,7 @@ func New(proxyAddress common.Address, client NodeClient) *Chad {
 		emissions: make([]*fixtureEmission, 0),
 		accsMap:   make(map[common.Address]*fixtureAcc),
 		accList:   make([]*fixtureAcc, 0),
-		client:    client,
 	}
-
-	c.initDeploys()
 
 	return c
 }
@@ -186,7 +178,7 @@ func (c *Chad) getRandomAccsPair() (*fixtureAcc, *fixtureAcc) {
 	return c.accList[first], c.accList[second]
 }
 
-func (c *Chad) initDeploys() {
+func (c *Chad) InitDeploys() {
 	stateDeploy := newDeploy(c.accList[3].Address, common.Hex2Bytes(binding.StateMetaData.Bin[2:]))
 	eventsDeploy := newDeploy(c.accList[4].Address, common.Hex2Bytes(binding.EventsMetaData.Bin[2:]))
 	transferDeploy := newDeploy(c.accList[5].Address, common.Hex2Bytes(binding.TransferMetaData.Bin[2:]))

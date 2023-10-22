@@ -61,8 +61,6 @@ func (p *StateProcessor) applyTransaction(tx *types.Transaction, statedb *state.
 
 	if contractCreation {
 		_, contrAddr, _, vmerr = evm.Create(sender, tx.Data(), math.MaxUint64, new(big.Int))
-		log.Println("apply create", blockNumber)
-
 	} else {
 		//TODO save unique tx hash?
 

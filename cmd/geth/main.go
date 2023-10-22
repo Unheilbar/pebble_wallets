@@ -40,7 +40,7 @@ func main() {
 	service.StartRaftNode()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-
+	service.StartMinter()
 	<-ctx.Done()
 }
 

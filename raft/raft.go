@@ -283,14 +283,13 @@ func (n *raftNode) eventLoop() {
 
 					var block types.Block
 					err := rlp.DecodeBytes(entry.Data, &block)
-					log.Println("entry data nodeid", n.id, crypto.Keccak256Hash(entry.Data))
+
 					if err != nil {
 						log.Println("error decoding block err", err)
 					}
 
 					err = n.blockchain.InsertChain(&block, n.id)
 					if err != nil {
-						time.Sleep(time.Second * 3)
 						n.transport.Stop()
 						log.Fatal("error insert to blockchain node ", n.id, err)
 					}

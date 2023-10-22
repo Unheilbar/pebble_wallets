@@ -36,4 +36,6 @@ node-up:
 	go build -o geth cmd/geth/*
 	rm -rf chaindb_1 chaindb_2 firstRaftNode secondRaftNode
 	rm -rf logs/*
-	./geth -raftId=2 -bootstrapNodes="http://192.168.0.1:5000,http://192.168.0.2:5001" -raftlog="./secondRaftNode" -chaindb="./chaindb_2" -log="./logs/node2.log"
+	./geth -raftId=1 -bootstrapNodes="http://127.0.0.1:5000" -raftlog="./secondRaftNode" -chaindb="./chaindb_2" -log="./logs/node2.log"
+stress:
+	go test -v -cpuprofile cpu.prof -memprofile mem.prof -run 'Test__Stess' tests/test_minter/*.go -timeout 99999s

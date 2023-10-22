@@ -41,10 +41,14 @@ func NewServer(e Backend, host string, port string) error {
 }
 
 func (s *Server) SendTransaction(ctx context.Context, tx *pb.TransactionRequest) (*pb.TransactionReply, error) {
-	to := common.BytesToAddress(tx.To)
+	var to *common.Address
+	if tx.GetTo() != nil {
+		txto := common.BytesToAddress(tx.GetTo())
+		to = &txto
+	}
 	signedTx := types.NewTx(types.TxData{
 		From:      common.BytesToAddress(tx.From),
-		To:        &to,
+		To:        to,
 		Id:        common.BytesToHash(tx.Id),
 		Signature: tx.Signature,
 		Data:      tx.Data,
@@ -67,6 +71,7 @@ func (s *Server) SubscribeBlocks(req *pb.SubscribeRequest, stream pb.PebbleAPI_S
 	ch := make(chan core.ChainHeadEvent)
 	sub := s.ethApi.SubscribeChainHeadEvent(ch)
 	defer sub.Unsubscribe()
+	defer close(ch)
 	for {
 		select {
 		case <-stream.Context().Done():

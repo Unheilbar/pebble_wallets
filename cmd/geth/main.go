@@ -25,7 +25,7 @@ func main() {
 	logPath := flag.String("log", "./logs/node.log", "log save path")
 	grpcHost := flag.String("grpc_host", "localhost", "host of grpc api")
 	grpcPort := flag.String("grpc_port", "6050", "port of grpc api")
-
+	miner := flag.Bool("miner", false, "miner")
 	flag.Parse()
 
 	f, err := os.OpenFile(*logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -40,7 +40,10 @@ func main() {
 	service.StartRaftNode()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	service.StartMinter()
+	if *miner {
+		service.StartMinter()
+	}
+
 	<-ctx.Done()
 }
 

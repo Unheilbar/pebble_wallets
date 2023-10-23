@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
@@ -30,6 +31,16 @@ type Sender struct {
 	arrivedTxes map[common.Hash]time.Time
 
 	emissionsResults map[common.Hash]result
+
+	//counters
+	emissionReqCounter atomic.Int64
+	transferReqCounter atomic.Int64
+
+	emissionRecieveCounter atomic.Int64
+	transferRecieveCounter atomic.Int64
+
+	accsAmount      int
+	transfersAmount int
 }
 
 func NewSender(nodeURL string, chad *Chad) *Sender {
@@ -41,9 +52,11 @@ func NewSender(nodeURL string, chad *Chad) *Sender {
 	pebbleClient := pb.NewPebbleAPIClient(conn)
 
 	return &Sender{
-		client:      pebbleClient,
-		testerData:  chad,
-		arrivedTxes: make(map[common.Hash]time.Time),
+		client:          pebbleClient,
+		testerData:      chad,
+		arrivedTxes:     make(map[common.Hash]time.Time),
+		accsAmount:      len(chad.accList),
+		transfersAmount: len(chad.transfers),
 	}
 }
 
@@ -79,11 +92,7 @@ func (s *Sender) Listen(ctx context.Context) error {
 				log.Fatal("err decoding recieved block", err)
 			}
 
-			s.mu.Lock()
-			for _, tx := range block.Transactions {
-				s.arrivedTxes[tx.Id()] = time.Now()
-			}
-			s.mu.Unlock()
+			s.updateStats(block.Transactions)
 		}
 	}
 }
@@ -93,6 +102,7 @@ func (s *Sender) Deploy() {
 		fmt.Printf("\rdeploy %d out of %d ...", i+1, len(s.testerData.deploys))
 		s.mustDeploy(tx)
 	}
+	fmt.Println()
 }
 
 func (s *Sender) mustDeploy(tx *types.Transaction) {
@@ -124,6 +134,8 @@ func (s *Sender) RunEmissions(rps int, threads int) {
 	for i := 0; i < threads; i++ {
 		go s.sendEmissions(emChan, lim)
 	}
+	s.waitEmissionsDone()
+	close(emChan)
 }
 
 func (s *Sender) emissionsQueue(ch chan txWithSignature) {
@@ -136,9 +148,32 @@ func (s *Sender) sendEmissions(ch chan txWithSignature, lim *rate.Limiter) {
 	for tx := range ch {
 		lim.Wait(context.Background())
 		_, err := s.client.SendTransaction(context.Background(), txToProto(tx.tx, tx.signature))
+		s.emissionReqCounter.Add(1)
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+}
+
+func (s *Sender) waitEmissionsDone() {
+	for {
+		time.Sleep(time.Millisecond * 50)
+		if s.emissionRecieveCounter.Load() == int64(s.accsAmount) {
+			break
+		}
+	}
+}
+
+func (s *Sender) Display(interval time.Duration) {
+
+}
+
+func (s *Sender) updateStats(txs []*types.Transaction) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, tx := range txs {
+		fmt.Println(i, tx.Id(), tx.Time().UnixMilli())
+		s.arrivedTxes[tx.Id()] = tx.Time()
 	}
 }
 

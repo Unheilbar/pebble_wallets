@@ -122,7 +122,7 @@ func copyAddressPtr(a *common.Address) *common.Address {
 // setDecoded sets the inner transaction and size after decoding.
 func (tx *Transaction) setDecoded(inner *TxData, size uint64) {
 	tx.inner = *inner
-	tx.time = time.Now()
+
 	tx.size.Store(size)
 }
 

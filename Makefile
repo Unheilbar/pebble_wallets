@@ -38,7 +38,9 @@ node-up:
 	rm -rf logs/*
 	./geth -raftId=1 -bootstrapNodes="http://127.0.0.1:5000" -raftlog="./secondRaftNode" -chaindb="./chaindb_2" -log="./logs/node2.log"
 stress:
-	# rm  test_minter.test
 	go test -v -cpuprofile cpu.prof -memprofile mem.prof -run 'Test__Stess' tests/test_minter/*.go -timeout 99999s
+	# rm  test_minter.test
+
+exclude = $(shell go list ./... | grep -v /tests/)
 unit-test:
-	go test $(go list ./... | grep -v /tests/)
+	go test $(exclude)

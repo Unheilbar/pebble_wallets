@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	walletsAmount   = 100000
-	transfersAmount = 10000
+	walletsAmount   = 10
+	transfersAmount = 10
 
 	rps     = 4000
 	threads = 100

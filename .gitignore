@@ -14,3 +14,4 @@ cpu.prof
 
 geth
 stress-minter.log
+test_minter.test

@@ -60,6 +60,9 @@ type Chad struct {
 	transfers []*fixtureTransfer
 	emissions []*fixtureEmission
 
+	emissionsId map[common.Hash]*fixtureEmission
+	transfersId map[common.Hash]*fixtureTransfer
+
 	accounts map[common.Address]chadAcc
 
 	mu          sync.Mutex
@@ -73,10 +76,12 @@ func New(proxyAddress common.Address) *Chad {
 	c := &Chad{
 		proxyAddress: proxyAddress,
 
-		transfers: make([]*fixtureTransfer, 0),
-		emissions: make([]*fixtureEmission, 0),
-		accsMap:   make(map[common.Address]*fixtureAcc),
-		accList:   make([]*fixtureAcc, 0),
+		transfers:   make([]*fixtureTransfer, 0),
+		emissions:   make([]*fixtureEmission, 0),
+		accsMap:     make(map[common.Address]*fixtureAcc),
+		accList:     make([]*fixtureAcc, 0),
+		emissionsId: make(map[common.Hash]*fixtureEmission),
+		transfersId: make(map[common.Hash]*fixtureTransfer),
 	}
 
 	return c
@@ -121,11 +126,13 @@ func (c *Chad) InitEmissions() {
 			log.Fatal(err)
 		}
 
-		c.emissions = append(c.emissions, &fixtureEmission{
+		emission := &fixtureEmission{
 			emissionWallet: acc.WalletId,
 			transaction:    tx,
 			signature:      sign,
-		})
+		}
+		c.emissions = append(c.emissions, emission)
+		c.emissionsId[tx.Id()] = emission
 	}
 }
 
@@ -144,12 +151,15 @@ func (c *Chad) InitTransfers(transfersAmount int) {
 		acc1, acc2 := c.getRandomAccsPair()
 		payload := packTX(methodTransfer, acc1.WalletId, acc2.WalletId, big.NewInt(transferTokens))
 		tx, sign := c.getTx(acc1, payload, c.proxyAddress)
-		c.transfers = append(c.transfers, &fixtureTransfer{
+		transfer := &fixtureTransfer{
 			fromAccount: acc1,
 			toAccount:   acc2,
 			transaction: tx,
 			signature:   sign,
-		})
+		}
+
+		c.transfers = append(c.transfers, transfer)
+		c.transfersId[tx.Id()] = transfer
 	}
 }
 

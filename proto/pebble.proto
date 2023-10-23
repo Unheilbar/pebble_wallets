@@ -7,7 +7,7 @@ option go_package = "/pebble_wallets";
 
 service PebbleAPI {
        rpc SendTransaction (TransactionRequest) returns (TransactionReply) {}
-       
+       rpc GetBalance (GetBalanceRequest) returns (BalanceReply){}
        rpc SubscribeBlocks (SubscribeRequest) returns (stream Block) {}
   }
   
@@ -18,6 +18,16 @@ service PebbleAPI {
 
   message SubscribeRequest{
 
+  }
+
+  message GetBalanceRequest{
+    bytes walletId = 1;
+    bytes address = 2;
+  }
+
+  message BalanceReply {
+    bytes walletId = 1;
+    int64 balance = 2;
   }
 
   message Block {

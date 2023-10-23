@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rlp"
 	"google.golang.org/grpc"
@@ -20,6 +22,7 @@ import (
 type Backend interface {
 	SendTx(ctx context.Context, signedTx *types.Transaction) (time.Time, error)
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
+	GetBalance([]byte, common.Address) *big.Int
 }
 
 type Server struct {
@@ -92,4 +95,16 @@ func (s *Server) SubscribeBlocks(req *pb.SubscribeRequest, stream pb.PebbleAPI_S
 			}
 		}
 	}
+}
+
+func (s *Server) GetBalance(ctx context.Context, req *pb.GetBalanceRequest) (*pb.BalanceReply, error) {
+	addr := common.BytesToAddress(req.Address)
+	res := s.ethApi.GetBalance(req.WalletId, addr)
+	if res == nil {
+		res = new(big.Int)
+	}
+	return &pb.BalanceReply{
+		WalletId: req.WalletId,
+		Balance:  res.Int64(),
+	}, nil
 }

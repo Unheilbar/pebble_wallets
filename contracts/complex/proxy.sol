@@ -26,4 +26,11 @@ contract Proxy {
     function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint128 amount) external{
         transferContract.transfer(msg.sender, fromWalletId, toWalletId, amount);
     }
+
+    function getBalance(bytes32 walletId) public view returns(uint128){
+        uint128 balance;
+        uint128 amount;
+        (balance, amount) = stateContract.getWalletState(walletId);
+        return balance;
+    }
 }

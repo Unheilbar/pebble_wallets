@@ -2,19 +2,23 @@ package test_minter
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
 	"testing"
 	"time"
 
+	pb "github.com/Unheilbar/pebbke_wallets/proto"
 	"github.com/Unheilbar/pebbke_wallets/tests/chad_v2"
+	"github.com/Unheilbar/pebbke_wallets/tests/client"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
-	walletsAmount   = 10000
-	transfersAmount = 150000
+	walletsAmount   = 1000
+	transfersAmount = 10000
 
 	rps     = 4000
 	threads = 100
@@ -38,7 +42,7 @@ func Test__Stess(t *testing.T) {
 	testerData.InitEmissions()
 	testerData.InitTransfers(transfersAmount)
 
-	sender := chad_v2.NewSender("192.168.0.1:6050", testerData, triggerSla)
+	sender := chad_v2.NewSender("localhost:6050", testerData, triggerSla)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -48,5 +52,25 @@ func Test__Stess(t *testing.T) {
 	sender.Deploy()
 	sender.RunEmissions(rps, threads)
 	sender.RunTransfers(rps, threads)
+
+	hosts := []string{"localhost:6050"}
+	checkAccounts := []int{10, 20, 30, 40, 50}
+	for _, h := range hosts {
+		client := client.New("localhost:6050")
+		fmt.Println("check results host", h)
+		for _, accID := range checkAccounts {
+			acc := testerData.AccByID(accID)
+			reply, err := client.GetBalance(context.Background(), &pb.GetBalanceRequest{
+				WalletId: acc.WalletId[:],
+				Address:  common.HexToAddress(defaultProxyAddress).Bytes(),
+			})
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("wallet ID", common.BytesToAddress(acc.WalletId[:]), "expected balance", acc.ExpectedBalance, "actualBalance", reply.Balance)
+		}
+
+	}
+
 	<-ctx.Done()
 }

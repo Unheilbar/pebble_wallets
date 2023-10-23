@@ -133,6 +133,7 @@ func (c *Chad) InitEmissions() {
 		}
 		c.emissions = append(c.emissions, emission)
 		c.emissionsId[tx.Id()] = emission
+		acc.ExpectedBalance = big.NewInt(emissionTokens)
 	}
 }
 
@@ -160,6 +161,8 @@ func (c *Chad) InitTransfers(transfersAmount int) {
 
 		c.transfers = append(c.transfers, transfer)
 		c.transfersId[tx.Id()] = transfer
+		acc1.ExpectedBalance.Sub(acc1.ExpectedBalance, big.NewInt(transferTokens)) // sub balance from
+		acc2.ExpectedBalance.Add(acc2.ExpectedBalance, big.NewInt(transferTokens))
 	}
 }
 
@@ -214,6 +217,10 @@ func (c *Chad) getRandomAccsPair() (*fixtureAcc, *fixtureAcc) {
 		second = rand.Intn(len(c.accList))
 	}
 	return c.accList[first], c.accList[second]
+}
+
+func (c *Chad) AccByID(id int) *fixtureAcc {
+	return c.accList[id]
 }
 
 func (c *Chad) InitDeploys() {

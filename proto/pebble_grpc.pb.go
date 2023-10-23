@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	PebbleAPI_SendTransaction_FullMethodName = "/api.PebbleAPI/SendTransaction"
+	PebbleAPI_GetBalance_FullMethodName      = "/api.PebbleAPI/GetBalance"
 	PebbleAPI_SubscribeBlocks_FullMethodName = "/api.PebbleAPI/SubscribeBlocks"
 )
 
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PebbleAPIClient interface {
 	SendTransaction(ctx context.Context, in *TransactionRequest, opts ...grpc.CallOption) (*TransactionReply, error)
+	GetBalance(ctx context.Context, in *GetBalanceRequest, opts ...grpc.CallOption) (*BalanceReply, error)
 	SubscribeBlocks(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (PebbleAPI_SubscribeBlocksClient, error)
 }
 
@@ -42,6 +44,15 @@ func NewPebbleAPIClient(cc grpc.ClientConnInterface) PebbleAPIClient {
 func (c *pebbleAPIClient) SendTransaction(ctx context.Context, in *TransactionRequest, opts ...grpc.CallOption) (*TransactionReply, error) {
 	out := new(TransactionReply)
 	err := c.cc.Invoke(ctx, PebbleAPI_SendTransaction_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pebbleAPIClient) GetBalance(ctx context.Context, in *GetBalanceRequest, opts ...grpc.CallOption) (*BalanceReply, error) {
+	out := new(BalanceReply)
+	err := c.cc.Invoke(ctx, PebbleAPI_GetBalance_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +96,7 @@ func (x *pebbleAPISubscribeBlocksClient) Recv() (*Block, error) {
 // for forward compatibility
 type PebbleAPIServer interface {
 	SendTransaction(context.Context, *TransactionRequest) (*TransactionReply, error)
+	GetBalance(context.Context, *GetBalanceRequest) (*BalanceReply, error)
 	SubscribeBlocks(*SubscribeRequest, PebbleAPI_SubscribeBlocksServer) error
 	mustEmbedUnimplementedPebbleAPIServer()
 }
@@ -95,6 +107,9 @@ type UnimplementedPebbleAPIServer struct {
 
 func (UnimplementedPebbleAPIServer) SendTransaction(context.Context, *TransactionRequest) (*TransactionReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendTransaction not implemented")
+}
+func (UnimplementedPebbleAPIServer) GetBalance(context.Context, *GetBalanceRequest) (*BalanceReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBalance not implemented")
 }
 func (UnimplementedPebbleAPIServer) SubscribeBlocks(*SubscribeRequest, PebbleAPI_SubscribeBlocksServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeBlocks not implemented")
@@ -130,6 +145,24 @@ func _PebbleAPI_SendTransaction_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PebbleAPI_GetBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PebbleAPIServer).GetBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PebbleAPI_GetBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PebbleAPIServer).GetBalance(ctx, req.(*GetBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PebbleAPI_SubscribeBlocks_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SubscribeRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -161,6 +194,10 @@ var PebbleAPI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendTransaction",
 			Handler:    _PebbleAPI_SendTransaction_Handler,
+		},
+		{
+			MethodName: "GetBalance",
+			Handler:    _PebbleAPI_GetBalance_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

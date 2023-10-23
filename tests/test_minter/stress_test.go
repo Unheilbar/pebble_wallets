@@ -14,9 +14,9 @@ import (
 
 const (
 	walletsAmount   = 10000
-	transfersAmount = 100000
+	transfersAmount = 150000
 
-	rps     = 3000
+	rps     = 4000
 	threads = 100
 )
 
@@ -38,7 +38,7 @@ func Test__Stess(t *testing.T) {
 	testerData.InitEmissions()
 	testerData.InitTransfers(transfersAmount)
 
-	sender := chad_v2.NewSender("localhost:6050", testerData, triggerSla)
+	sender := chad_v2.NewSender("192.168.0.1:6050", testerData, triggerSla)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

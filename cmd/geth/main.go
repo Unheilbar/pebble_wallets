@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -42,6 +43,7 @@ func main() {
 	defer stop()
 	if *miner {
 		service.StartMinter()
+		fmt.Println("ya minter")
 	}
 
 	<-ctx.Done()

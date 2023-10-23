@@ -42,7 +42,6 @@ func (t *timings) setRecieve(id common.Hash, recieveTime time.Time) {
 			t.maxSla = sla
 		}
 		if sla > t.triggerSla {
-			fmt.Println("here")
 			t.txAboveTriggerSla.Add(1)
 		}
 	}
@@ -141,7 +140,10 @@ func (s *Sender) Deploy() {
 }
 
 func (s *Sender) mustDeploy(tx *types.Transaction) {
-	s.client.SendTransaction(context.Background(), txToProto(tx, []byte{1, 2, 3})) // deploy doesnt check signature
+	_, err := s.client.SendTransaction(context.Background(), txToProto(tx, []byte{1, 2, 3})) // deploy doesnt check signature
+	if err != nil {
+		log.Fatal(err)
+	}
 	for {
 		s.mu.Lock()
 		_, ok := s.arrivedTxes[tx.Id()]

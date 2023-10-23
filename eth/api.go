@@ -1,11 +1,15 @@
 package eth
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 )
 
@@ -31,9 +35,22 @@ func (b *EthAPIBackend) SendTxs(ctx context.Context, signedTx *types.Transaction
 
 func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) (time.Time, error) {
 	recieveTime := time.Now()
-	signedTx.WithTime(recieveTime) //
-	err := b.eth.txPool.AddTx(signedTx)
+	ok, err := preCheck(signedTx)
+	if signedTx.To() != nil {
+		fmt.Println(ok, err, "to", signedTx.To(), "from", signedTx.From(), "dataHash", crypto.Keccak256Hash(signedTx.Data()), "sig hash", crypto.Keccak256Hash(signedTx.Signature()), "hash", signedTx.Hash())
+	}
+	err = b.eth.txPool.AddTx(signedTx)
 	return recieveTime, err
+}
+
+func preCheck(tx *types.Transaction) (bool, error) {
+	sigPublicKey, err := crypto.Ecrecover(tx.Hash().Bytes(), tx.Signature())
+	if err != nil {
+		return false, err
+	}
+	var addr common.Address
+	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
+	return bytes.Equal(addr.Bytes(), tx.From().Bytes()), nil
 }
 
 func (b *EthAPIBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {

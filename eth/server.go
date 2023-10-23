@@ -10,7 +10,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rlp"
 	"google.golang.org/grpc"
@@ -40,21 +40,19 @@ func NewServer(e Backend, host string, port string) error {
 	return nil
 }
 
-func (s *Server) SendTransaction(ctx context.Context, tx *pb.TransactionRequest) (*pb.TransactionReply, error) {
-	var to *common.Address
-	if tx.GetTo() != nil {
-		txto := common.BytesToAddress(tx.GetTo())
-		to = &txto
-	}
-	signedTx := types.NewTx(types.TxData{
-		From:      common.BytesToAddress(tx.From),
-		To:        to,
-		Id:        common.BytesToHash(tx.Id),
-		Signature: tx.Signature,
-		Data:      tx.Data,
-	})
+func (s *Server) SendTransaction(ctx context.Context, in *pb.TransactionRequest) (*pb.TransactionReply, error) {
+	var tx = &types.Transaction{}
 
-	recieveTime, err := s.ethApi.SendTx(ctx, signedTx)
+	err := rlp.DecodeBytes(in.Rlp, tx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if tx.To() != nil {
+		fmt.Println(tx.Hash(), tx.From().Hex(), tx.To().Hex(), tx.Id().Hex(), crypto.Keccak256Hash(tx.Data()), crypto.Keccak256Hash(tx.Signature()))
+	}
+
+	recieveTime, err := s.ethApi.SendTx(ctx, tx)
 
 	// PEBBLE Here we can implement error to status code later
 	if err != nil {

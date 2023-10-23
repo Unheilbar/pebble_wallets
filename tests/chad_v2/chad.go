@@ -1,6 +1,7 @@
 package chad_v2
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"log"
 	"math/big"
@@ -106,11 +107,23 @@ func (c *Chad) InitAccs(walletsAmount int, genesisOffset int) {
 func (c *Chad) InitEmissions() {
 	for _, acc := range c.accList {
 		payload := packTX(methodEmission, acc.Address, acc.WalletId, big.NewInt(emissionTokens))
+		tx := c.getTx(acc, payload, c.proxyAddress)
+
 		c.emissions = append(c.emissions, &fixtureEmission{
 			emissionWallet: acc.WalletId,
-			transaction:    c.getTx(acc, payload, c.proxyAddress),
+			transaction:    tx,
 		})
 	}
+}
+
+func preCheck(tx *types.Transaction) (bool, error) {
+	sigPublicKey, err := crypto.Ecrecover(tx.Hash().Bytes(), tx.Signature())
+	if err != nil {
+		return false, err
+	}
+	var addr common.Address
+	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
+	return bytes.Equal(addr.Bytes(), tx.From().Bytes()), nil
 }
 
 func (c *Chad) InitTransfers(transfersAmount int) {

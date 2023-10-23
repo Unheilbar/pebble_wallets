@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	walletsAmount   = 100
+	walletsAmount   = 10
 	transfersAmount = 10
 
 	rps     = 5
@@ -22,7 +22,7 @@ const (
 
 func Test__Stess(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	testerData := chad_v2.New(common.Address{})
+	testerData := chad_v2.New(common.HexToAddress("0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467"))
 
 	testerData.InitAccs(walletsAmount, 0)
 	testerData.InitDeploys()

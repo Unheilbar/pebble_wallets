@@ -11,6 +11,7 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -136,15 +137,15 @@ func (s *Sender) sendEmissions(ch chan *types.Transaction, lim *rate.Limiter) {
 }
 
 func txToProto(tx *types.Transaction) *pb.TransactionRequest {
-	var to []byte
-	if tx.To() != nil {
-		to = tx.To().Bytes()
+	rlp, err := rlp.EncodeToBytes(tx)
+	if err != nil {
+		log.Fatal(err)
 	}
+	if tx.To() != nil {
+		fmt.Println(tx.Hash(), tx.From().Hex(), tx.To().Hex(), tx.Id().Hex(), crypto.Keccak256Hash(tx.Data()), crypto.Keccak256Hash(tx.Signature()))
+	}
+
 	return &pb.TransactionRequest{
-		From:      tx.From().Bytes(),
-		To:        to,
-		Id:        tx.Id().Bytes(),
-		Signature: tx.Signature(),
-		Data:      tx.Data(),
+		Rlp: rlp,
 	}
 }

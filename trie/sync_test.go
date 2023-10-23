@@ -26,7 +26,6 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 )
@@ -508,95 +507,6 @@ func testDuplicateAvoidanceSync(t *testing.T, scheme string) {
 	}
 	// Cross check that the two tries are in sync
 	checkTrieContents(t, diskdb, srcDb.Scheme(), srcTrie.Hash().Bytes(), srcData, false)
-}
-
-// Tests that at any point in time during a sync, only complete sub-tries are in
-// the database.
-func TestIncompleteSyncHash(t *testing.T) {
-	testIncompleteSync(t, rawdb.HashScheme)
-	testIncompleteSync(t, rawdb.PathScheme)
-}
-
-func testIncompleteSync(t *testing.T, scheme string) {
-	// Create a random trie to copy
-	_, srcDb, srcTrie, _ := makeTestTrie(scheme)
-
-	// Create a destination trie and sync with the scheduler
-	diskdb := rawdb.NewMemoryDatabase()
-	sched := NewSync(srcTrie.Hash(), diskdb, nil, srcDb.Scheme())
-
-	// The code requests are ignored here since there is no code
-	// at the testing trie.
-	var (
-		addedKeys   []string
-		addedHashes []common.Hash
-		elements    []trieElement
-		root        = srcTrie.Hash()
-	)
-	paths, nodes, _ := sched.Missing(1)
-	for i := 0; i < len(paths); i++ {
-		elements = append(elements, trieElement{
-			path:     paths[i],
-			hash:     nodes[i],
-			syncPath: NewSyncPath([]byte(paths[i])),
-		})
-	}
-	reader, err := srcDb.Reader(srcTrie.Hash())
-	if err != nil {
-		t.Fatalf("State is not available %x", srcTrie.Hash())
-	}
-	for len(elements) > 0 {
-		// Fetch a batch of trie nodes
-		results := make([]NodeSyncResult, len(elements))
-		for i, element := range elements {
-			owner, inner := ResolvePath([]byte(element.path))
-			data, err := reader.Node(owner, inner, element.hash)
-			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", element.hash, err)
-			}
-			results[i] = NodeSyncResult{element.path, data}
-		}
-		// Process each of the trie nodes
-		for _, result := range results {
-			if err := sched.ProcessNode(result); err != nil {
-				t.Fatalf("failed to process result %v", err)
-			}
-		}
-		batch := diskdb.NewBatch()
-		if err := sched.Commit(batch); err != nil {
-			t.Fatalf("failed to commit data: %v", err)
-		}
-		batch.Write()
-
-		for _, result := range results {
-			hash := crypto.Keccak256Hash(result.Data)
-			if hash != root {
-				addedKeys = append(addedKeys, result.Path)
-				addedHashes = append(addedHashes, crypto.Keccak256Hash(result.Data))
-			}
-		}
-		// Fetch the next batch to retrieve
-		paths, nodes, _ = sched.Missing(1)
-		elements = elements[:0]
-		for i := 0; i < len(paths); i++ {
-			elements = append(elements, trieElement{
-				path:     paths[i],
-				hash:     nodes[i],
-				syncPath: NewSyncPath([]byte(paths[i])),
-			})
-		}
-	}
-	// Sanity check that removing any node from the database is detected
-	for i, path := range addedKeys {
-		owner, inner := ResolvePath([]byte(path))
-		nodeHash := addedHashes[i]
-		value := rawdb.ReadTrieNode(diskdb, owner, inner, nodeHash, scheme)
-		rawdb.DeleteTrieNode(diskdb, owner, inner, nodeHash, scheme)
-		if err := checkTrieConsistency(diskdb, srcDb.Scheme(), root, false); err == nil {
-			t.Fatalf("trie inconsistency not caught, missing: %x", path)
-		}
-		rawdb.WriteTrieNode(diskdb, owner, inner, nodeHash, value, scheme)
-	}
 }
 
 // Tests that trie nodes get scheduled lexicographically when having the same

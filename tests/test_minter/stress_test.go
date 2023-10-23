@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	walletsAmount   = 10
+	walletsAmount   = 100
 	transfersAmount = 10
 
 	rps     = 5

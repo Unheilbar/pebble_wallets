@@ -5,19 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type result struct {
+	sent     time.Time
+	recieved time.Time
+}
+
 type Sender struct {
 	client     pb.PebbleAPIClient
 	testerData *Chad
+	mu         sync.Mutex
+
+	arrivedTxes map[common.Hash]time.Time
+
+	emissionsResults map[common.Hash]result
 }
 
 func NewSender(nodeURL string, chad *Chad) *Sender {
@@ -28,7 +40,11 @@ func NewSender(nodeURL string, chad *Chad) *Sender {
 
 	pebbleClient := pb.NewPebbleAPIClient(conn)
 
-	return &Sender{pebbleClient, chad}
+	return &Sender{
+		client:      pebbleClient,
+		testerData:  chad,
+		arrivedTxes: make(map[common.Hash]time.Time),
+	}
 }
 
 // Listen gets new blocks and updates actual states based on blocks events
@@ -63,16 +79,34 @@ func (s *Sender) Listen(ctx context.Context) error {
 				log.Fatal("err decoding recieved block", err)
 			}
 
-			fmt.Println("recieved block", block.Header().Root)
-			fmt.Println("receipts len", len(block.Transactions))
+			s.mu.Lock()
+			for _, tx := range block.Transactions {
+				s.arrivedTxes[tx.Id()] = time.Now()
+			}
+			s.mu.Unlock()
 		}
 	}
 }
 
 func (s *Sender) Deploy() {
 	for i, tx := range s.testerData.deploys {
-		fmt.Printf("deploy %d out of %d ...", i+1, len(s.testerData.deploys))
-		s.client.SendTransaction(context.Background(), txToProto(tx))
+		fmt.Printf("\rdeploy %d out of %d ...", i+1, len(s.testerData.deploys))
+		s.mustDeploy(tx)
+	}
+}
+
+func (s *Sender) mustDeploy(tx *types.Transaction) {
+	s.client.SendTransaction(context.Background(), txToProto(tx))
+	for {
+		s.mu.Lock()
+		_, ok := s.arrivedTxes[tx.Id()]
+		if ok {
+			delete(s.arrivedTxes, tx.Id())
+			s.mu.Unlock()
+			return
+		}
+		s.mu.Unlock()
+		time.Sleep(time.Millisecond * 50)
 	}
 }
 
@@ -80,8 +114,24 @@ func (s *Sender) RunEmissions(rps int, threads int) {
 	d := int(time.Second) / rps
 	r := rate.Every(time.Duration(d))
 	lim := rate.NewLimiter(r, rps/2)
-	for i := 0; i < threads; i++ {
-		go s.sendEmission()
+	emChan := make(chan *types.Transaction, threads)
+	go s.emissionsQueue(emChan)
+	go s.sendEmissions(emChan, lim)
+}
+
+func (s *Sender) emissionsQueue(ch chan *types.Transaction) {
+	for _, tx := range s.testerData.emissions {
+		ch <- tx.transaction
+	}
+}
+
+func (s *Sender) sendEmissions(ch chan *types.Transaction, lim *rate.Limiter) {
+	for tx := range ch {
+		lim.Wait(context.Background())
+		_, err := s.client.SendTransaction(context.Background(), txToProto(tx))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

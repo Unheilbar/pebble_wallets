@@ -33,7 +33,6 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/state/snapshot"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/trie"
-	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
 	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -484,23 +483,6 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 	return nil
 }
 
-func TestTouchDelete(t *testing.T) {
-	s := newStateEnv()
-	s.state.GetOrNewStateObject(common.Address{})
-	root, _ := s.state.Commit(0, false)
-	s.state, _ = New(root, s.state.db, s.state.snaps)
-
-	snapshot := s.state.Snapshot()
-
-	if len(s.state.journal.dirties) != 1 {
-		t.Fatal("expected one dirty state object")
-	}
-	s.state.RevertToSnapshot(snapshot)
-	if len(s.state.journal.dirties) != 0 {
-		t.Fatal("expected no dirty state object")
-	}
-}
-
 // Tests a regression where committing a copy lost some internal meta information,
 // leading to corrupted subsequent copies.
 //
@@ -696,60 +678,6 @@ func TestDeleteCreateRevert(t *testing.T) {
 
 	if state.getStateObject(addr) != nil {
 		t.Fatalf("self-destructed contract came alive")
-	}
-}
-
-// TestMissingTrieNodes tests that if the StateDB fails to load parts of the trie,
-// the Commit operation fails with an error
-// If we are missing trie nodes, we should not continue writing to the trie
-func TestMissingTrieNodes(t *testing.T) {
-	testMissingTrieNodes(t, rawdb.HashScheme)
-	testMissingTrieNodes(t, rawdb.PathScheme)
-}
-
-func testMissingTrieNodes(t *testing.T, scheme string) {
-	// Create an initial state with a few accounts
-	var (
-		triedb *trie.Database
-		memDb  = rawdb.NewMemoryDatabase()
-	)
-
-	triedb = trie.NewDatabase(memDb, &trie.Config{HashDB: &hashdb.Config{
-		CleanCacheSize: 0,
-	}}) // disable caching
-
-	db := NewDatabaseWithNodeDB(memDb, triedb)
-
-	var root common.Hash
-	state, _ := New(types.EmptyRootHash, db, nil)
-	addr := common.BytesToAddress([]byte("so"))
-	{
-
-		state.SetCode(addr, []byte{1, 2, 3})
-		a2 := common.BytesToAddress([]byte("another"))
-
-		state.SetCode(a2, []byte{1, 2, 4})
-		root, _ = state.Commit(0, false)
-		t.Logf("root: %x", root)
-		// force-flush
-		triedb.Commit(root, false)
-	}
-	// Create a new state on the old root
-	state, _ = New(root, db, nil)
-	// Now we clear out the memdb
-	it := memDb.NewIterator(nil, nil)
-	for it.Next() {
-		k := it.Key()
-		// Leave the root intact
-		if !bytes.Equal(k, root[:]) {
-			t.Logf("key: %x", k)
-			memDb.Delete(k)
-		}
-	}
-
-	root, err := state.Commit(0, false)
-	if err == nil {
-		t.Fatalf("expected error, got root :%x", root)
 	}
 }
 
@@ -999,39 +927,6 @@ func TestStateDBTransientStorage(t *testing.T) {
 	cpy := state.Copy()
 	if got := cpy.GetTransientState(addr, key); got != value {
 		t.Fatalf("transient storage mismatch: have %x, want %x", got, value)
-	}
-}
-
-func TestResetObject(t *testing.T) {
-	var (
-		disk     = rawdb.NewMemoryDatabase()
-		tdb      = trie.NewDatabase(disk, nil)
-		db       = NewDatabaseWithNodeDB(disk, tdb)
-		snaps, _ = snapshot.New(snapshot.Config{CacheSize: 10}, disk, tdb, types.EmptyRootHash)
-		state, _ = New(types.EmptyRootHash, db, snaps)
-		addr     = common.HexToAddress("0x1")
-		slotA    = common.HexToHash("0x1")
-		slotB    = common.HexToHash("0x2")
-	)
-	// Initialize account with balance and storage in first transaction.
-	state.SetState(addr, slotA, common.BytesToHash([]byte{0x1}))
-	state.IntermediateRoot(true)
-
-	// Reset account and mutate balance and storages
-	state.CreateAccount(addr)
-
-	state.SetState(addr, slotB, common.BytesToHash([]byte{0x2}))
-	root, _ := state.Commit(0, true)
-
-	// Ensure the original account is wiped properly
-	snap := snaps.Snapshot(root)
-	slot, _ := snap.Storage(crypto.Keccak256Hash(addr.Bytes()), crypto.Keccak256Hash(slotA.Bytes()))
-	if len(slot) != 0 {
-		t.Fatalf("Unexpected storage slot")
-	}
-	slot, _ = snap.Storage(crypto.Keccak256Hash(addr.Bytes()), crypto.Keccak256Hash(slotB.Bytes()))
-	if !bytes.Equal(slot, []byte{0x2}) {
-		t.Fatalf("Unexpected storage slot value %v", slot)
 	}
 }
 

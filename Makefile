@@ -40,3 +40,5 @@ node-up:
 stress:
 	# rm  test_minter.test
 	go test -v -cpuprofile cpu.prof -memprofile mem.prof -run 'Test__Stess' tests/test_minter/*.go -timeout 99999s
+unit-test:
+	go test $(go list ./... | grep -v /tests/)

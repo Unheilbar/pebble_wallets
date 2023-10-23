@@ -19,6 +19,8 @@ import (
 	"github.com/oleiade/lane"
 )
 
+const maxBlockSize = 300
+
 type minter struct {
 	mu               sync.Mutex
 	mux              *event.TypeMux
@@ -183,8 +185,6 @@ func (minter *minter) mintingLoop() {
 		throttledMintNewBlock()
 	}
 }
-
-const maxBlockSize = 300
 
 func (minter *minter) eventLoop() {
 	for {

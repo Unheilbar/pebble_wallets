@@ -102,6 +102,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		if check == nil {
 			panic("evm create code err")
 		}
+
+		log.Println("successfull deploy", contractAddr.Hex())
 	} else {
 		// Increment the nonce for the next transaction
 		// st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1) add unique tx ID to states

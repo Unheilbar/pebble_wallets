@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/google/uuid"
 )
 
@@ -42,11 +43,13 @@ type fixtureTransfer struct {
 	toAccount   *fixtureAcc
 	sendTime    time.Time
 	transaction *types.Transaction
+	signature   []byte
 }
 
 type fixtureEmission struct {
 	emissionWallet [32]byte
 	transaction    *types.Transaction
+	signature      []byte
 }
 
 type Chad struct {
@@ -107,11 +110,21 @@ func (c *Chad) InitAccs(walletsAmount int, genesisOffset int) {
 func (c *Chad) InitEmissions() {
 	for _, acc := range c.accList {
 		payload := packTX(methodEmission, acc.Address, acc.WalletId, big.NewInt(emissionTokens))
-		tx := c.getTx(acc, payload, c.proxyAddress)
+		tx, sign := c.getTx(acc, payload, c.proxyAddress)
+		var decTx = &types.Transaction{}
+		b, err := rlp.EncodeToBytes(tx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = rlp.DecodeBytes(b, decTx)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		c.emissions = append(c.emissions, &fixtureEmission{
 			emissionWallet: acc.WalletId,
 			transaction:    tx,
+			signature:      sign,
 		})
 	}
 }
@@ -130,10 +143,12 @@ func (c *Chad) InitTransfers(transfersAmount int) {
 	for i := 0; i < transfersAmount; i++ {
 		acc1, acc2 := c.getRandomAccsPair()
 		payload := packTX(methodTransfer, acc1.WalletId, acc2.WalletId, big.NewInt(transferTokens))
+		tx, sign := c.getTx(acc1, payload, c.proxyAddress)
 		c.transfers = append(c.transfers, &fixtureTransfer{
 			fromAccount: acc1,
 			toAccount:   acc2,
-			transaction: c.getTx(acc1, payload, c.proxyAddress),
+			transaction: tx,
+			signature:   sign,
 		})
 	}
 }
@@ -167,7 +182,7 @@ func packTX(method string, params ...interface{}) []byte {
 	return input
 }
 
-func (c *Chad) getTx(acc *fixtureAcc, payload []byte, to common.Address) *types.Transaction {
+func (c *Chad) getTx(acc *fixtureAcc, payload []byte, to common.Address) (*types.Transaction, []byte) {
 	id := []byte(uuid.New().String())
 	genTx := types.NewTx(types.TxData{
 		From: acc.Address,
@@ -179,7 +194,7 @@ func (c *Chad) getTx(acc *fixtureAcc, payload []byte, to common.Address) *types.
 	if err != nil {
 		log.Fatal("sign err", err)
 	}
-	return genTx.WithSignature(sign)
+	return genTx, sign
 }
 
 func (c *Chad) getRandomAccsPair() (*fixtureAcc, *fixtureAcc) {

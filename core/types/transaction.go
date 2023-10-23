@@ -3,7 +3,6 @@ package types
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"sync/atomic"
 	"time"
@@ -69,7 +68,6 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 
 func (tx *Transaction) Hash() common.Hash {
 	if hash := tx.hash.Load(); hash != nil {
-		fmt.Println("here")
 		return hash.(common.Hash)
 	}
 

@@ -13,16 +13,23 @@ import (
 )
 
 const (
-	walletsAmount   = 10
-	transfersAmount = 10
+	walletsAmount   = 100000
+	transfersAmount = 10000
 
-	rps     = 5
-	threads = 10
+	rps     = 4000
+	threads = 100
 )
+
+// state 0x6027946B05e7ab6Ef245093622AB18eaD5453877
+// event 0x6C02e060D0E1CAD7c039A9aE3aBc29A40b3DFF1f
+// transfer 0x5dBC355B93DD7A0C0D759Fd6a7859d2610219221
+// proxy 0xb84A87293A2f2A9387DcE04145bB5d97942c1129
+
+const defaultProxyAddress = "0xb84A87293A2f2A9387DcE04145bB5d97942c1129"
 
 func Test__Stess(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	testerData := chad_v2.New(common.HexToAddress("0x94a562Ef266F41D4AC4b125c1C2a5aAf7E952467"))
+	testerData := chad_v2.New(common.HexToAddress(defaultProxyAddress))
 
 	testerData.InitAccs(walletsAmount, 0)
 	testerData.InitDeploys()

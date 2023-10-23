@@ -3,7 +3,6 @@ package eth
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/core"
@@ -35,11 +34,8 @@ func (b *EthAPIBackend) SendTxs(ctx context.Context, signedTx *types.Transaction
 
 func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) (time.Time, error) {
 	recieveTime := time.Now()
-	ok, err := preCheck(signedTx)
-	if signedTx.To() != nil {
-		fmt.Println(ok, err, "to", signedTx.To(), "from", signedTx.From(), "dataHash", crypto.Keccak256Hash(signedTx.Data()), "sig hash", crypto.Keccak256Hash(signedTx.Signature()), "hash", signedTx.Hash())
-	}
-	err = b.eth.txPool.AddTx(signedTx)
+
+	err := b.eth.txPool.AddTx(signedTx)
 	return recieveTime, err
 }
 

@@ -13,6 +13,7 @@ service PebbleAPI {
   
   message TransactionRequest {
     bytes rlp = 1;
+    bytes signature = 2;
   }
 
   message SubscribeRequest{

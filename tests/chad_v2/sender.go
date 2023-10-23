@@ -11,7 +11,6 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -97,7 +96,7 @@ func (s *Sender) Deploy() {
 }
 
 func (s *Sender) mustDeploy(tx *types.Transaction) {
-	s.client.SendTransaction(context.Background(), txToProto(tx))
+	s.client.SendTransaction(context.Background(), txToProto(tx, []byte{1, 2, 3})) // deploy doesnt check signature
 	for {
 		s.mu.Lock()
 		_, ok := s.arrivedTxes[tx.Id()]
@@ -111,41 +110,46 @@ func (s *Sender) mustDeploy(tx *types.Transaction) {
 	}
 }
 
+type txWithSignature struct {
+	tx        *types.Transaction
+	signature []byte
+}
+
 func (s *Sender) RunEmissions(rps int, threads int) {
 	d := int(time.Second) / rps
 	r := rate.Every(time.Duration(d))
 	lim := rate.NewLimiter(r, rps/2)
-	emChan := make(chan *types.Transaction, threads)
+	emChan := make(chan txWithSignature, threads)
 	go s.emissionsQueue(emChan)
-	go s.sendEmissions(emChan, lim)
-}
-
-func (s *Sender) emissionsQueue(ch chan *types.Transaction) {
-	for _, tx := range s.testerData.emissions {
-		ch <- tx.transaction
+	for i := 0; i < threads; i++ {
+		go s.sendEmissions(emChan, lim)
 	}
 }
 
-func (s *Sender) sendEmissions(ch chan *types.Transaction, lim *rate.Limiter) {
+func (s *Sender) emissionsQueue(ch chan txWithSignature) {
+	for _, tx := range s.testerData.emissions {
+		ch <- txWithSignature{tx.transaction, tx.signature}
+	}
+}
+
+func (s *Sender) sendEmissions(ch chan txWithSignature, lim *rate.Limiter) {
 	for tx := range ch {
 		lim.Wait(context.Background())
-		_, err := s.client.SendTransaction(context.Background(), txToProto(tx))
+		_, err := s.client.SendTransaction(context.Background(), txToProto(tx.tx, tx.signature))
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func txToProto(tx *types.Transaction) *pb.TransactionRequest {
+func txToProto(tx *types.Transaction, signature []byte) *pb.TransactionRequest {
 	rlp, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if tx.To() != nil {
-		fmt.Println(tx.Hash(), tx.From().Hex(), tx.To().Hex(), tx.Id().Hex(), crypto.Keccak256Hash(tx.Data()), crypto.Keccak256Hash(tx.Signature()))
-	}
 
 	return &pb.TransactionRequest{
-		Rlp: rlp,
+		Rlp:       rlp,
+		Signature: signature,
 	}
 }

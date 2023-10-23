@@ -10,7 +10,6 @@ import (
 	"github.com/Unheilbar/pebbke_wallets/core"
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	pb "github.com/Unheilbar/pebbke_wallets/proto"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rlp"
 	"google.golang.org/grpc"
@@ -48,9 +47,8 @@ func (s *Server) SendTransaction(ctx context.Context, in *pb.TransactionRequest)
 		log.Fatal(err)
 	}
 
-	if tx.To() != nil {
-		fmt.Println(tx.Hash(), tx.From().Hex(), tx.To().Hex(), tx.Id().Hex(), crypto.Keccak256Hash(tx.Data()), crypto.Keccak256Hash(tx.Signature()))
-	}
+	tx.Hash()
+	tx.WithSignature(in.Signature)
 
 	recieveTime, err := s.ethApi.SendTx(ctx, tx)
 

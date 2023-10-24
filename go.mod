@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
+	github.com/celestiaorg/smt v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/eapache/channels v1.1.0

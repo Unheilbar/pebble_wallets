@@ -23,6 +23,9 @@ build-complex:
 # events
 	docker run -v `pwd`/contracts:/contracts/sources ethereum/solc:stable -o /contracts/sources --abi --bin /contracts/sources/complex/events.sol --overwrite --via-ir --optimize
 	abigen --abi contracts/Event.abi --bin contracts/Event.bin --pkg binding --type Events --out binding/events.go
+build-lsm:
+	docker run -v `pwd`/contracts:/contracts/sources ethereum/solc:stable -o /contracts/sources --abi --bin /contracts/sources/lsm/lsm.sol --overwrite --via-ir --optimize
+	abigen --abi contracts/Lsm.abi --bin contracts/Lsm.bin --pkg binding --type Lsm --out binding/lsm.go
 up-full-node:
 	rm -rf logs/*
 	go run cmd/geth/*.go

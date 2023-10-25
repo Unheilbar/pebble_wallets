@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/Unheilbar/pebbke_wallets/binding"
 	"github.com/Unheilbar/pebbke_wallets/core"
@@ -26,7 +27,8 @@ var fakeWallet1 = "walletOne"
 var fakeWallet2 = "walletTwo"
 
 func runFakeVM() {
-	evm := vm.NewEVM(core.NewEVMBlockContext(&types.Header{Number: big.NewInt(1), Time: 123}), newTxContext(from.Address()), NewFakeState(), vm.DefaultCancunConfig())
+	state := NewFakeState()
+	evm := vm.NewEVM(core.NewEVMBlockContext(&types.Header{Number: big.NewInt(1), Time: 123}), newTxContext(from.Address()), state, vm.DefaultCancunConfig())
 	code := common.Hex2Bytes(binding.LsmBin[2:])
 
 	_, accAddr, _, err := evm.Create(from, code, math.MaxBig256.Uint64(), new(big.Int))
@@ -34,17 +36,30 @@ func runFakeVM() {
 		log.Fatal(err)
 	}
 	fmt.Println(accAddr)
-	var arg [32]byte
-	copy(arg[:], crypto.Keccak256Hash([]byte(fakeWallet1)).Bytes()[:])
+	emissions := getEmissions(25134)
+	start := time.Now()
+	interpreter := evm.Interpreter()
+	contr := vm.NewContract(from, vm.AccountRef(accAddr), new(big.Int), math.MaxUint64)
+	contr.SetCallCode(&accAddr, state.GetCodeHash(accAddr), state.GetCode(accAddr))
+	for _, emission := range emissions {
+		_, err := interpreter.Run(contr, emission, false)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	fmt.Println("run", time.Since(start), len(state.state[accAddr].storage))
+}
 
-	input := packTX("emission", arg, big.NewInt(123))
-
-	ret, _, vmerr := evm.Call(from, accAddr, input, math.MaxBig256.Uint64(), new(big.Int))
-	if vmerr != nil {
-		log.Fatal(vmerr)
+func getEmissions(size int) [][]byte {
+	emissions := make([][]byte, 0)
+	for i := 0; i < size; i++ {
+		var arg [32]byte
+		copy(arg[:], crypto.Keccak256Hash([]byte(fmt.Sprintf("%s%d", fakeWallet1, i))).Bytes()[:])
+		input := packTX("emission", arg, big.NewInt(123))
+		emissions = append(emissions, input)
 	}
 
-	fmt.Println("return", common.Bytes2Hex(ret))
+	return emissions
 }
 
 func packTX(method string, params ...interface{}) []byte {

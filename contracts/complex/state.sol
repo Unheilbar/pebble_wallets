@@ -9,6 +9,7 @@ contract State {
     mapping (bytes32 => uint8) walletStatusMap;
     mapping (bytes32 => uint8) walletTypesMap;
     mapping (bytes32 => bool) walletAvailableTransferTypes;
+    mapping (address => bytes) certificates;
 
     // user with walletType 0 can transfer to user with wallet types 1 and 2 which is abi encoded 0x0000000000000000000000000000000000000000000000000000000000000001;
     constructor() {
@@ -31,6 +32,14 @@ contract State {
 
     function getSender(address sender) external view returns(bytes32) {
         return senders[sender];
+    }
+
+    function setCertificate(address sender, bytes certificate) public innerCall {
+        certificates[sender] = certificate;
+    }
+
+    function getCeriticate(address sender) external view returns(bytes) {
+        return certificates[sender];
     }
     
     function getWalletStatus(bytes32 walletId) external view returns(uint8) {

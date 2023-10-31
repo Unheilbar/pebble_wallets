@@ -1,15 +1,16 @@
 package core
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"math/big"
 
 	"github.com/Unheilbar/pebbke_wallets/core/types"
 	"github.com/Unheilbar/pebbke_wallets/core/vm"
+	csp "github.com/Unheilbar/pebbke_wallets/cryptopro"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -116,16 +117,66 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}, nil
 }
 
+// func GetCertificate(from common.Address) (*csp.CertificateContext, error) {
+// 	path := "./certs"
+// 	if raw, err := ioutil.ReadFile(path); err == nil && len(raw) > 0 {
+// 		if crt, err := csp.LoadRawCertificate(raw); err == nil {
+// 			defer crt.Close()
+// 			return crt, nil
+// 		}
+// 	}
+// 	return nil, errors.New("failed load cert")
+// }
+
+func GetCertPubKey(from common.Address) (*csp.Key, error) {
+	path := "./certs"
+	if raw, err := ioutil.ReadFile(path); err == nil && len(raw) > 0 {
+		certCtx, err := csp.CertCreateCertificateContext(raw)
+		if err != nil {
+			return nil, errors.New("err while CertCreateCertificateContext")
+		}
+		if certCtx == nil {
+			return nil, errors.New("err while CertCreateCertificateContext")
+		} else {
+			prov, err := csp.CryptAcquireContext("", "", csp.PROV_GOST_2012_256, csp.CRYPT_VERIFYCONTEXT)
+			if err != nil {
+				log.Println(err)
+			}
+			key, err := csp.CryptImportPublicKeyInfoEx(prov, certCtx)
+			if err != nil {
+				return nil, err
+			}
+			return key, nil
+		}
+	}
+	return nil, errors.New("failed load cert")
+}
+
 func (st *StateTransition) preCheck() error {
 	msg := st.tx
-	sigPublicKey, err := crypto.Ecrecover(st.tx.Hash().Bytes(), msg.Signature())
+	certPubKey, err := GetCertPubKey(msg.From())
 	if err != nil {
 		return err
 	}
-	var addr common.Address
-	copy(addr[:], crypto.Keccak256(sigPublicKey[1:])[12:])
-	if !bytes.Equal(addr.Bytes(), st.tx.From().Bytes()) {
+	prov, err := csp.CryptAcquireContext("", "", csp.PROV_GOST_2012_256, csp.CRYPT_VERIFYCONTEXT)
+	if err != nil {
+		log.Println(err)
+	}
+	hash, err := csp.CreateCryptHash(prov, csp.CALG_GR3411_2012_256)
+	if err != nil {
+		log.Println("error while creating hash with CreateCryptHash", err)
+	}
+	signedHash := msg.SignedHash().Bytes()
+	err = hash.CryptHashData(signedHash)
+	if err != nil {
+		panic(err)
+	}
+	status, err := csp.CryptVerifySignature(hash, msg.Signature(), certPubKey, 0)
+	if err != nil {
 		return fmt.Errorf("invalid signature")
+	}
+	if status {
+		log.Println("signature verified")
 	}
 
 	// codeHash := st.state.GetCodeHash(msg.From)

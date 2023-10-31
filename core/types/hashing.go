@@ -3,9 +3,11 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"sync"
 
+	csp "github.com/Unheilbar/pebbke_wallets/cryptopro"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -39,12 +41,29 @@ func getPooledBuffer(size uint64) ([]byte, *bytes.Buffer, error) {
 
 // rlpHash encodes x and hashes the encoded bytes.
 func rlpHash(x interface{}) (h common.Hash) {
-	sha := hasherPool.Get().(crypto.KeccakState)
-	defer hasherPool.Put(sha)
-	sha.Reset()
-	rlp.Encode(sha, x)
-	sha.Read(h[:])
-	return h
+	hashBytes, _ := rlp.EncodeToBytes(x)
+	prov, err := csp.CryptAcquireContext("", "", csp.PROV_GOST_2012_256, csp.CRYPT_VERIFYCONTEXT)
+	if err != nil {
+		log.Println(err)
+	}
+
+	hash, err := csp.CreateCryptHash(prov, csp.CALG_GR3411_2012_256)
+	if err != nil {
+		log.Println("error while creating hash with CreateCryptHash", err)
+	}
+
+	err = hash.CryptHashData(hashBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	hh, err := hash.CryptGetHashParam()
+
+	if err != nil {
+		log.Println("error while getting hash value with CryptGetHashParam", err)
+	}
+	h = common.Hash(hh)
+	return
 }
 
 // prefixedRlpHash writes the prefix into the hasher before rlp-encoding x.

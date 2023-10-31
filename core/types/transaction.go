@@ -43,6 +43,17 @@ func (tx *Transaction) EncodeRLP(w io.Writer) error {
 
 }
 
+func (tx *Transaction) SignedHash() common.Hash {
+	v := rlpHash([]interface{}{
+		tx.inner.From,
+		tx.inner.To,
+		tx.inner.Id,
+		tx.inner.Signature,
+		tx.inner.Data,
+	})
+	return v
+}
+
 var errShortTypedTx = errors.New("typed transaction too short")
 
 // DecodeRLP implements rlp.Decoder

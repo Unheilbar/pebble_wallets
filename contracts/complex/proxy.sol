@@ -13,10 +13,10 @@ contract Proxy {
     Transfer private transferContract;
     State private stateContract;
    
-   constructor (){
+    constructor (){
         stateContract = State(stateAddr);
         transferContract = Transfer(transferAddr);
-   }
+    }
 
     function emission(address senderId, bytes32 walletId, uint128 amount) external {
         stateContract.setWalletState(walletId, amount, 0);
@@ -25,5 +25,13 @@ contract Proxy {
 
     function transfer(bytes32 fromWalletId, bytes32 toWalletId, uint128 amount) external{
         transferContract.transfer(msg.sender, fromWalletId, toWalletId, amount);
+    }
+
+    function setCertificate(address senderId, bytes ceriticate) external {
+        stateContract.setCertificate(senderId, certificate);
+    }
+
+    function getCertificate(address senderId) external view returns(bytes) {
+        stateContract.getCertificate(senderId);
     }
 }

@@ -19,7 +19,7 @@ package trie
 import (
 	"fmt"
 
-	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
+	"github.com/Unheilbar/pebble_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 )
 

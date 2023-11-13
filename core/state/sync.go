@@ -17,8 +17,8 @@
 package state
 
 import (
-	"github.com/Unheilbar/pebbke_wallets/core/types"
-	"github.com/Unheilbar/pebbke_wallets/trie"
+	"github.com/Unheilbar/pebble_wallets/core/types"
+	"github.com/Unheilbar/pebble_wallets/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"

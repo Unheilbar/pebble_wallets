@@ -3,7 +3,7 @@ package client
 import (
 	"log"
 
-	pb "github.com/Unheilbar/pebbke_wallets/proto"
+	pb "github.com/Unheilbar/pebble_wallets/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

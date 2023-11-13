@@ -11,9 +11,9 @@ import (
 
 	"log"
 
-	"github.com/Unheilbar/pebbke_wallets/eth"
-	"github.com/Unheilbar/pebbke_wallets/node"
-	"github.com/Unheilbar/pebbke_wallets/raft"
+	"github.com/Unheilbar/pebble_wallets/eth"
+	"github.com/Unheilbar/pebble_wallets/node"
+	"github.com/Unheilbar/pebble_wallets/raft"
 )
 
 var blockThrottle = time.Millisecond * 50

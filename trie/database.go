@@ -19,9 +19,9 @@ package trie
 import (
 	"errors"
 
-	"github.com/Unheilbar/pebbke_wallets/trie/triedb/hashdb"
-	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
-	"github.com/Unheilbar/pebbke_wallets/trie/triestate"
+	"github.com/Unheilbar/pebble_wallets/trie/triedb/hashdb"
+	"github.com/Unheilbar/pebble_wallets/trie/trienode"
+	"github.com/Unheilbar/pebble_wallets/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 )

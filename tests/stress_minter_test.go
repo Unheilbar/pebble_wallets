@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Unheilbar/pebbke_wallets/binding"
-	"github.com/Unheilbar/pebbke_wallets/core"
-	"github.com/Unheilbar/pebbke_wallets/eth"
-	"github.com/Unheilbar/pebbke_wallets/node"
-	"github.com/Unheilbar/pebbke_wallets/raft"
-	"github.com/Unheilbar/pebbke_wallets/tests/chad"
+	"github.com/Unheilbar/pebble_wallets/binding"
+	"github.com/Unheilbar/pebble_wallets/core"
+	"github.com/Unheilbar/pebble_wallets/eth"
+	"github.com/Unheilbar/pebble_wallets/node"
+	"github.com/Unheilbar/pebble_wallets/raft"
+	"github.com/Unheilbar/pebble_wallets/tests/chad"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

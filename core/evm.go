@@ -3,7 +3,7 @@ package core
 import (
 	"math/big"
 
-	"github.com/Unheilbar/pebbke_wallets/core/vm"
+	"github.com/Unheilbar/pebble_wallets/core/vm"
 	"github.com/ethereum/go-ethereum/common"
 )
 

@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Unheilbar/pebbke_wallets/core/types"
-	pb "github.com/Unheilbar/pebbke_wallets/proto"
+	"github.com/Unheilbar/pebble_wallets/core/types"
+	pb "github.com/Unheilbar/pebble_wallets/proto"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/time/rate"

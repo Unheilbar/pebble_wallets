@@ -1,4 +1,4 @@
-module github.com/Unheilbar/pebbke_wallets
+module github.com/Unheilbar/pebble_wallets
 
 go 1.20
 

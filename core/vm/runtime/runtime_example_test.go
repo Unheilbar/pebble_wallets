@@ -19,7 +19,7 @@ package runtime_test
 import (
 	"fmt"
 
-	"github.com/Unheilbar/pebbke_wallets/core/vm/runtime"
+	"github.com/Unheilbar/pebble_wallets/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/common"
 )
 

@@ -3,9 +3,9 @@ package eth
 import (
 	"log"
 
-	"github.com/Unheilbar/pebbke_wallets/core"
-	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
-	"github.com/Unheilbar/pebbke_wallets/core/txpool"
+	"github.com/Unheilbar/pebble_wallets/core"
+	"github.com/Unheilbar/pebble_wallets/core/rawdb"
+	"github.com/Unheilbar/pebble_wallets/core/txpool"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 

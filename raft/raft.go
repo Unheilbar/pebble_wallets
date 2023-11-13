@@ -14,9 +14,9 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 
-	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebble_wallets/core/types"
 
-	"github.com/Unheilbar/pebbke_wallets/core"
+	"github.com/Unheilbar/pebble_wallets/core"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb"

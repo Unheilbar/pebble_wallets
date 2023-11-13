@@ -17,8 +17,8 @@
 package runtime
 
 import (
-	"github.com/Unheilbar/pebbke_wallets/core"
-	"github.com/Unheilbar/pebbke_wallets/core/vm"
+	"github.com/Unheilbar/pebble_wallets/core"
+	"github.com/Unheilbar/pebble_wallets/core/vm"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {

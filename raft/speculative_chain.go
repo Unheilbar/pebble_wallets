@@ -1,7 +1,7 @@
 package raft
 
 import (
-	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebble_wallets/core/types"
 	"github.com/oleiade/lane"
 )
 

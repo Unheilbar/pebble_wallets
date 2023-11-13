@@ -7,11 +7,11 @@ import (
 	"math/big"
 
 	// Add VM and runtime to core
-	"github.com/Unheilbar/pebbke_wallets/core/state"
-	"github.com/Unheilbar/pebbke_wallets/core/types"
-	"github.com/Unheilbar/pebbke_wallets/core/vm"
+	"github.com/Unheilbar/pebble_wallets/core/state"
+	"github.com/Unheilbar/pebble_wallets/core/types"
+	"github.com/Unheilbar/pebble_wallets/core/vm"
 
-	// "github.com/Unheilbar/pebbke_wallets/core/vm/runtime"
+	// "github.com/Unheilbar/pebble_wallets/core/vm/runtime"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"

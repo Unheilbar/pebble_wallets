@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Unheilbar/pebbke_wallets/binding"
-	"github.com/Unheilbar/pebbke_wallets/core/types"
+	"github.com/Unheilbar/pebble_wallets/binding"
+	"github.com/Unheilbar/pebble_wallets/core/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"

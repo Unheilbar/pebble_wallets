@@ -22,7 +22,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebble_wallets/core/rawdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethdb"

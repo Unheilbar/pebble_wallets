@@ -22,10 +22,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/Unheilbar/pebbke_wallets/core/rawdb"
+	"github.com/Unheilbar/pebble_wallets/core/rawdb"
 
-	"github.com/Unheilbar/pebbke_wallets/core/types"
-	"github.com/Unheilbar/pebbke_wallets/trie/trienode"
+	"github.com/Unheilbar/pebble_wallets/core/types"
+	"github.com/Unheilbar/pebble_wallets/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

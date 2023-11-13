@@ -10,17 +10,17 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/Unheilbar/pebbke_wallets/proto"
-	"github.com/Unheilbar/pebbke_wallets/tests/chad_v2"
-	"github.com/Unheilbar/pebbke_wallets/tests/client"
+	pb "github.com/Unheilbar/pebble_wallets/proto"
+	"github.com/Unheilbar/pebble_wallets/tests/chad_v2"
+	"github.com/Unheilbar/pebble_wallets/tests/client"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
-	walletsAmount   = 1000
-	transfersAmount = 10000
+	walletsAmount   = 10000
+	transfersAmount = 100000
 
-	rps     = 4000
+	rps     = 3000
 	threads = 100
 )
 
@@ -30,6 +30,7 @@ const (
 // proxy 0xb84A87293A2f2A9387DcE04145bB5d97942c1129
 
 const defaultProxyAddress = "0xb84A87293A2f2A9387DcE04145bB5d97942c1129"
+const clientUri = "192.168.0.1:6050"
 
 var triggerSla = time.Millisecond * 1500
 
@@ -42,7 +43,7 @@ func Test__Stess(t *testing.T) {
 	testerData.InitEmissions()
 	testerData.InitTransfers(transfersAmount)
 
-	sender := chad_v2.NewSender("localhost:6050", testerData, triggerSla)
+	sender := chad_v2.NewSender(clientUri, testerData, triggerSla)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -52,11 +53,11 @@ func Test__Stess(t *testing.T) {
 	sender.Deploy()
 	sender.RunEmissions(rps, threads)
 	sender.RunTransfers(rps, threads)
-
-	hosts := []string{"localhost:6050"}
+	time.Sleep(time.Second)
+	hosts := []string{clientUri}
 	checkAccounts := []int{10, 20, 30, 40, 50}
 	for _, h := range hosts {
-		client := client.New("localhost:6050")
+		client := client.New(clientUri)
 		fmt.Println("check results host", h)
 		for _, accID := range checkAccounts {
 			acc := testerData.AccByID(accID)

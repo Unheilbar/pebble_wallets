@@ -25,6 +25,10 @@ const transferTokens = 10         // amount of tokens for transfer
 const methodEmission = "emission"
 const methodTransfer = "transfer"
 
+type Signer interface {
+	Sign(data []byte, acc *fixtureAcc) ([]byte, error)
+}
+
 type chadAcc struct {
 	Address common.Address
 	Private *ecdsa.PrivateKey
@@ -53,9 +57,11 @@ type fixtureEmission struct {
 }
 
 type Chad struct {
+	signer       Signer
 	proxyAddress common.Address
-	accsMap      map[common.Address]*fixtureAcc
-	accList      []*fixtureAcc
+
+	accsMap map[common.Address]*fixtureAcc
+	accList []*fixtureAcc
 
 	transfers []*fixtureTransfer
 	emissions []*fixtureEmission
@@ -72,7 +78,7 @@ type Chad struct {
 }
 
 // genesisOffset determines from which point we need generate contract addresses
-func New(proxyAddress common.Address) *Chad {
+func New(proxyAddress common.Address, signer Signer) *Chad {
 	c := &Chad{
 		proxyAddress: proxyAddress,
 
@@ -82,6 +88,7 @@ func New(proxyAddress common.Address) *Chad {
 		accList:     make([]*fixtureAcc, 0),
 		emissionsId: make(map[common.Hash]*fixtureEmission),
 		transfersId: make(map[common.Hash]*fixtureTransfer),
+		signer:      signer,
 	}
 
 	return c
@@ -203,10 +210,11 @@ func (c *Chad) getTx(acc *fixtureAcc, payload []byte, to common.Address) (*types
 		Id:   crypto.Keccak256Hash(id),
 		Data: payload,
 	})
-	sign, err := crypto.Sign(genTx.Hash().Bytes(), acc.Private)
+	sign, err := c.signer.Sign(genTx.Hash().Bytes(), acc)
 	if err != nil {
 		log.Fatal("sign err", err)
 	}
+
 	return genTx, sign
 }
 

@@ -19,7 +19,7 @@ import (
 	"github.com/oleiade/lane"
 )
 
-const maxBlockSize = 300
+const maxBlockSize = 1000
 
 type minter struct {
 	mu               sync.Mutex

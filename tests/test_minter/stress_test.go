@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	walletsAmount   = 1000
-	transfersAmount = 10000
+	walletsAmount   = 10000
+	transfersAmount = 100000
 
-	rps     = 4000
+	rps     = 3500
 	threads = 100
 )
 
@@ -35,7 +35,7 @@ var triggerSla = time.Millisecond * 1500
 
 func Test__Stess(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	testerData := chad_v2.New(common.HexToAddress(defaultProxyAddress))
+	testerData := chad_v2.New(common.HexToAddress(defaultProxyAddress), chad_v2.NewEcdsa())
 
 	testerData.InitAccs(walletsAmount, 0)
 	testerData.InitDeploys()
